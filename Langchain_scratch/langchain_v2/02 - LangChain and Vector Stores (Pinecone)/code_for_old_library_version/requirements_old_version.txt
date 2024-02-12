@@ -1,0 +1,12 @@
+langchain<0.1
+openai<1
+pinecone-client<3
+docx2txt
+pypdf
+tiktoken
+requests
+pandas
+aiohttp
+PyYAML
+python-dotenv
+numpy
