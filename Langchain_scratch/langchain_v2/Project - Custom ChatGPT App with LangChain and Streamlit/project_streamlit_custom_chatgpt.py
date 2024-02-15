@@ -1,5 +1,5 @@
-from langchain.chat_models import ChatOpenAI
-from langchain.schema import(
+from langchain_openai import ChatOpenAI
+from langchain.schema import (
     SystemMessage,
     HumanMessage,
     AIMessage
@@ -35,7 +35,7 @@ with st.sidebar:
         if not any(isinstance(x, SystemMessage) for x in st.session_state.messages):
             st.session_state.messages.append(
                 SystemMessage(content=system_message)
-                )
+            )
 
     # st.write(st.session_state.messages)
 
@@ -59,13 +59,15 @@ with st.sidebar:
 # adding a default SystemMessage if the user didn't entered one
 if len(st.session_state.messages) >= 1:
     if not isinstance(st.session_state.messages[0], SystemMessage):
-        st.session_state.messages.insert(0, SystemMessage(content='You are a helpful assistant.'))
+        st.session_state.messages.insert(0, SystemMessage(
+            content='You are a helpful assistant.'))
 
 # displaying the messages (chat history)
 for i, msg in enumerate(st.session_state.messages[1:]):
     if i % 2 == 0:
-        message(msg.content, is_user=True, key=f'{i} + 🤓') # user's question
+        message(msg.content, is_user=True, key=f'{i} + 🤓')  # user's question
     else:
-        message(msg.content, is_user=False, key=f'{i} +  🤖') # ChatGPT response
+        message(msg.content, is_user=False,
+                key=f'{i} +  🤖' ) # ChatGPT response
 
 # run the app: streamlit run ./project_streamlit_custom_chatgpt.py
