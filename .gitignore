@@ -12,6 +12,8 @@ dual_model_cp/
 *.arrow
 *.csv
 *.json
+*.pdf
+
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
