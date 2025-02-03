@@ -1,0 +1,10 @@
+---
+description: 確保環境變數配置安全
+globs: .env, .env.example
+---
+# Environment Variable Rules
+
+- 所有 `.env` 檔案應包含 `.env.example` 參考文件。
+- `.env` 文件不得提交至 Git，應加入 `.gitignore`。
+- API 金鑰應儲存在 `.env`，避免硬編碼 (`HARDCODED_KEYS` 檢查)。
+- 變數命名應遵循大寫格式，如 `DATABASE_URL`、`SECRET_KEY`。

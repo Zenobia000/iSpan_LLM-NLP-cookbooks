@@ -1,0 +1,13 @@
+---
+description: 規範 PR 創建流程
+globs: /.github/PULL_REQUEST_TEMPLATE.md, *.md
+---
+# Pull Request Rules
+
+- PR 標題格式：`[Feature] / [Bugfix] / [Refactor] - 簡要描述`
+- PR 必須包含：
+  - 變更原因與背景
+  - 影響範圍（是否影響現有功能？）
+  - 測試方式與結果
+- 不可將 `.env` 或 `config.json` 提交至 PR。
+- 所有 PR 需要至少 1 位 Reviewer 通過審查後才能合併。

@@ -1,0 +1,167 @@
+﻿# Instructions
+
+During you interaction with the user, if you find anything reusable in this project (e.g. version of a library, model name), especially about a fix to a mistake you made or a correction you received, you should take note in the `Lessons` section in the `.cursorrules` file so you will not make the same mistake again.
+
+You should also use the `.cursorrules` file as a scratchpad to organize your thoughts. Especially when you receive a new task, you should first review the content of the scratchpad, clear old different task if necessary, first explain the task, and plan the steps you need to take to complete the task. You can use todo markers to indicate the progress, e.g.
+[X] Task 1
+[ ] Task 2
+
+Also update the progress of the task in the Scratchpad when you finish a subtask.
+Especially when you finished a milestone, it will help to improve your depth of task accomplishment to use the scratchpad to reflect and plan.
+The goal is to help you maintain a big picture as well as the progress of the task. Always refer to the Scratchpad when you plan the next step.
+
+# Tools
+
+Note all the tools are in python. So in the case you need to do batch processing, you can always consult the python files and write your own script.
+
+## Screenshot Verification
+The screenshot verification workflow allows you to capture screenshots of web pages and verify their appearance using LLMs. The following tools are available:
+
+1. Screenshot Capture:
+```bash
+python tools/screenshot_utils.py URL [--output OUTPUT] [--width WIDTH] [--height HEIGHT]
+```
+
+2. LLM Verification with Images:
+```bash
+python tools/llm_api.py --prompt "Your verification question" --provider {openai|anthropic} --image path/to/screenshot.png
+```
+
+Example workflow:
+```python
+from screenshot_utils import take_screenshot_sync
+from llm_api import query_llm
+
+# Take a screenshot
+screenshot_path = take_screenshot_sync('https://example.com', 'screenshot.png')
+
+# Verify with LLM
+response = query_llm(
+    "What is the background color and title of this webpage?",
+    provider="openai",  # or "anthropic"
+    image_path=screenshot_path
+)
+print(response)
+```
+
+## LLM
+
+You always have an LLM at your side to help you with the task. For simple tasks, you could invoke the LLM by running the following command:
+```
+python ./tools/llm_api.py --prompt "What is the capital of France?" --provider "anthropic"
+```
+
+The LLM API supports multiple providers:
+- OpenAI (default, model: gpt-4o)
+- Azure OpenAI (model: configured via AZURE_OPENAI_MODEL_DEPLOYMENT in .env file, defaults to gpt-4o-ms)
+- DeepSeek (model: deepseek-chat)
+- Anthropic (model: claude-3-sonnet-20240229)
+- Gemini (model: gemini-pro)
+- Local LLM (model: Qwen/Qwen2.5-32B-Instruct-AWQ)
+
+But usually it's a better idea to check the content of the file and use the APIs in the `tools/llm_api.py` file to invoke the LLM if needed.
+
+## Web browser
+
+You could use the `tools/web_scraper.py` file to scrape the web.
+```
+python ./tools/web_scraper.py --max-concurrent 3 URL1 URL2 URL3
+```
+This will output the content of the web pages.
+
+## Search engine
+
+You could use the `tools/search_engine.py` file to search the web.
+```
+python ./tools/search_engine.py "your search keywords"
+```
+This will output the search results in the following format:
+```
+URL: https://example.com
+Title: This is the title of the search result
+Snippet: This is a snippet of the search result
+```
+If needed, you can further use the `web_scraper.py` file to scrape the web page content.
+
+# Lessons
+
+## User Specified Lessons
+
+- You have a python venv in ./venv. Use it.
+- Include info useful for debugging in the program output.
+- Read the file before you try to edit it.
+- Due to Cursor's limit, when you use `git` and `gh` and need to submit a multiline commit message, first write the message in a file, and then use `git commit -F <filename>` or similar command to commit. And then remove the file. Include "[Cursor] " in the commit message and PR title.
+
+## Cursor learned
+
+- For search results, ensure proper handling of different character encodings (UTF-8) for international queries
+- Add debug information to stderr while keeping the main output clean in stdout for better pipeline integration
+- When using seaborn styles in matplotlib, use 'seaborn-v0_8' instead of 'seaborn' as the style name due to recent seaborn version changes
+- Use 'gpt-4o' as the model name for OpenAI's GPT-4 with vision capabilities
+
+
+# Scratchpad
+
+## Task: 建立 LangChain 課程範例程式
+
+### 檔案結構規劃
+Course/
+├── Module1/
+│   ├── 1_1_framework_overview.py      ✓
+│   ├── 1_2_installation_setup.py      ✓
+│   ├── 1_3_llm_integration.py         ✓
+│   └── 1_4_chains_basics.py           ✓
+├── Module2/
+│   ├── 2_1_agent_concepts.py          ✓
+│   ├── 2_2_tools_usage.py
+│   └── 2_3_agent_automation.py
+├── Module3/
+│   ├── 3_1_rag_basics.py
+│   ├── 3_2_vector_retrieval.py
+│   ├── 3_3_document_loaders.py
+│   ├── 3_4_text_splitters.py
+│   └── 3_5_custom_models.py
+├── Module4/
+│   ├── 4_1_monitoring.py
+│   ├── 4_2_optimization.py
+│   └── 4_3_deployment.py
+└── Module5/
+    ├── 5_1_ai_assistant.py
+    ├── 5_2_document_analysis.py
+    ├── 5_3_customer_service.py
+    └── 5_4_advanced_features.py
+
+### Progress
+[X] 規劃檔案結構
+[X] 建立 Module1 範例
+    [X] 1.1 框架概覽
+    [X] 1.2 安裝設定
+    [X] 1.3 LLM 整合
+    [X] 1.4 Chains 基礎
+[X] 建立 Module2 範例
+    [X] 2.1 Agent 概念
+    [X] 2.2 工具使用
+    [X] 2.3 Agent 自動化
+[ ] 建立 Module3 範例
+    [ ] 3.1 RAG 基礎
+    [ ] 3.2 向量檢索
+    [ ] 3.3 文件載入器
+    [ ] 3.4 文本分割
+    [ ] 3.5 自定義模型
+[ ] 建立 Module4 範例
+[ ] 建立 Module5 範例
+
+### Notes
+- Module1 和 Module2 已完成
+- Module3 將專注於 RAG (Retrieval Augmented Generation) 相關功能
+- 下一步：建立 3.1 RAG 基礎範例，展示基本的檢索增強生成流程
+
+### Lessons Learned
+- 使用 langchain 0.3+ 的新 API 結構
+- 使用 LCEL (LangChain Expression Language) 建立處理鏈
+- ChatOpenAI 替代舊版的 OpenAI
+- 使用 logging 模組進行錯誤處理
+- Anthropic Claude 模型名稱更新為 claude-3-5-sonnet-20240620
+- 使用 ChatAnthropic 替代舊版的 Anthropic
+- 需要安裝 pandas-stubs 以解決類型提示問題
+- 使用 pydantic v2 (>=2.0.0) 而不是 langchain_core.pydantic_v1

@@ -1,0 +1,12 @@
+---
+description: 規範代碼格式，確保一致性
+globs: *.js, *.ts, *.tsx, *.py
+---
+# Code Style Rules
+
+- 使用 `Prettier` 格式化所有 JavaScript/TypeScript 代碼。
+- Python 代碼應遵循 `Black` 格式化標準 (`black --line-length 88`）。
+- 確保所有代碼符合 ESLint/Flake8 規範，並修正警告與錯誤。
+- 避免 `console.log()`，改用 `debugger` 或 `Logger`。
+- 變數命名遵循 camelCase，類與接口使用 PascalCase。
+
