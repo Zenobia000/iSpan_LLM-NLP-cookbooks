@@ -14,7 +14,7 @@ LangChain 0.3+ RAG (Retrieval Augmented Generation) 基礎範例
 # from langchain_core.pydantic_v1 import BaseModel, Field
 from pydantic import BaseModel, Field
 from langchain_openai import ChatOpenAI, OpenAIEmbeddings
-from langchain_community.vectorstores import Chroma
+from langchain_chroma import Chroma
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.runnables import RunnablePassthrough
@@ -252,17 +252,13 @@ class RAGSystem:
                 logger.info(f"載入既有向量存儲: {persist_dir}")
                 self.vectorstore = Chroma(
                     persist_directory=persist_dir,
-                    embedding_function=self.embeddings
+                    embedding_function=self.embeddings,
+                    collection_name="langchain_collection"
                 )
                 # 檢查是否有內容
-                if self.vectorstore._collection.count() == 0 and texts:
+                if len(self.vectorstore.get()["ids"]) == 0 and texts:
                     logger.info("既有向量存儲為空，添加新文檔")
-                    self.vectorstore = Chroma.from_texts(
-                        texts=texts,
-                        embedding=self.embeddings,
-                        persist_directory=persist_dir
-                    )
-                    self.vectorstore.persist()
+                    self.vectorstore.add_texts(texts)
             else:
                 # 只有在有文檔時才創建新的向量存儲
                 if texts:
@@ -270,13 +266,13 @@ class RAGSystem:
                     self.vectorstore = Chroma.from_texts(
                         texts=texts,
                         embedding=self.embeddings,
-                        persist_directory=persist_dir
+                        persist_directory=persist_dir,
+                        collection_name="langchain_collection"
                     )
-                    self.vectorstore.persist()
                 else:
                     raise ValueError("沒有文檔可供初始化向量存儲")
 
-            logger.info(f"向量存儲包含 {self.vectorstore._collection.count()} 個文檔")
+            logger.info(f"向量存儲包含 {len(self.vectorstore.get()['ids'])} 個文檔")
         except Exception as e:
             logger.error(f"向量存儲初始化失敗: {str(e)}")
             raise
@@ -338,8 +334,47 @@ class RAGSystem:
             raise
 
 
+def clean_database():
+    """清理並重建 Chroma 資料庫"""
+    try:
+        import chromadb
+        from chromadb.config import Settings
+        
+        # 清理舊的資料庫文件
+        paths_to_clean = [
+            "vectorstore",
+            "document_store",
+            ".chroma",
+            "chroma_store"
+        ]
+        
+        for path in paths_to_clean:
+            if os.path.exists(path):
+                shutil.rmtree(path)
+                logger.info(f"已清理目錄: {path}")
+        
+        # 初始化新的 Chroma 客戶端
+        client = chromadb.PersistentClient(
+            path="vectorstore"
+        )
+        
+        # 創建新的集合
+        collection = client.create_collection(
+            name="langchain_collection",
+            metadata={"hnsw:space": "cosine"}
+        )
+        
+        logger.info("已完成資料庫初始化")
+        
+    except Exception as e:
+        logger.error(f"資料庫清理失敗: {str(e)}")
+
+
 def demonstrate_rag(clean: bool = True):
     """展示 RAG 系統的使用"""
+    if clean:
+        clean_database()  # 添加這行
+    
     persist_dir = "vectorstore"
     document_store = "document_store"
 
@@ -396,8 +431,6 @@ def demonstrate_rag(clean: bool = True):
         ]
 
 
-
-
         for question in test_questions:
             print(f"\n問題: {question}")
             result = rag_system.query(question)
@@ -429,7 +462,9 @@ def main():
         return
 
     try:
-        demonstrate_rag(clean=False)
+        # 首次運行時清理資料庫
+        clean_database()
+        demonstrate_rag(clean=False)  # 因為已經清理過，這裡設為 False
     except Exception as e:
         logger.error(f"執行過程發生錯誤: {str(e)}")
 
