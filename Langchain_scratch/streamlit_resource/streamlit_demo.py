@@ -2,9 +2,8 @@ import streamlit as st
 import time
 import pandas as pd
 
-
 # set page title
-st.title('Helloooooo Streamlit World!!!')
+st.title('Hello Streamlit World!!!')
 
 my_select_box = st.sidebar.selectbox('Select country:', list(['US', 'UK', 'DE', 'FR', 'JP']) )
 my_slider = st.sidebar.slider('Temperature C')
