@@ -2,33 +2,26 @@
 LangChain 0.3+ RAG (Retrieval Augmented Generation) 基礎範例
 展示如何實現基本的檢索增強生成系統
 
-需求套件:
-- langchain>=0.3.0
-- langchain-openai>=0.0.2
-- langchain-community>=0.0.1
-- chromadb>=0.4.0
-- python-dotenv>=0.19.0
-- tiktoken>=0.5.0
+主要功能：
+1. 文件加載與處理
+2. 向量化與儲存
+3. 相似度搜尋
+4. LLM 串接與回答生成
 """
 
-# from langchain_core.pydantic_v1 import BaseModel, Field
-from pydantic import BaseModel, Field
-from langchain_openai import ChatOpenAI, OpenAIEmbeddings
-from langchain_chroma import Chroma
-from langchain_core.prompts import ChatPromptTemplate
-from langchain_core.output_parsers import StrOutputParser
-from langchain_core.runnables import RunnablePassthrough
-from langchain.text_splitter import RecursiveCharacterTextSplitter
-from typing import List, Dict, Any, Optional
-from pathlib import Path
-import logging
 import os
+import logging
+from typing import List, Optional
 from dotenv import load_dotenv
-import shutil
-from datetime import datetime
-import hashlib
-import json
-from dataclasses import dataclass
+from pydantic import BaseModel, Field
+from langchain_core.documents import Document
+from langchain_core.output_parsers import StrOutputParser
+from langchain_core.prompts import ChatPromptTemplate
+from langchain_core.runnables import RunnablePassthrough
+from langchain_community.embeddings import OpenAIEmbeddings
+from langchain_community.vectorstores import Chroma
+from langchain_openai import ChatOpenAI
+from langchain_text_splitters import RecursiveCharacterTextSplitter
 
 # 設定日誌
 logging.basicConfig(
@@ -40,435 +33,240 @@ logger = logging.getLogger(__name__)
 # 載入環境變數
 load_dotenv()
 
+class DocumentMetadata(BaseModel):
+    """文件元數據模型"""
+    source: str = Field(description="文件來源")
+    topic: str = Field(description="主題分類")
+    date: Optional[str] = Field(default=None, description="發布日期")
 
-class SearchResult(BaseModel):
-    """搜尋結果模型"""
-    query: str = Field(description="搜尋查詢")
-    relevant_chunks: List[str] = Field(description="相關的文本片段")
-    answer: str = Field(description="根據檢索內容生成的回答")
-    sources: List[str] = Field(description="資訊來源")
+def create_demo_documents(long_text) -> List[Document]:
 
-
-@dataclass
-class Document:
-    """文檔資料結構"""
-    content: str
-    metadata: Dict[str, Any]
-    doc_hash: str
-    created_at: str
-    updated_at: str
-
-
-class DocumentManager:
-    """文檔管理器：負責文檔的資料治理"""
-    def __init__(self, persist_dir: str = "document_store"):
-        self.persist_dir = persist_dir
-        self.metadata_file = Path(persist_dir) / "metadata.json"
-        self.documents: Dict[str, Document] = {}
-        self._load_metadata()
-
-    def _load_metadata(self):
-        """載入文檔元數據"""
-        try:
-            if self.metadata_file.exists():
-                data = json.loads(self.metadata_file.read_text(encoding="utf-8"))
-                self.documents = {
-                    doc_hash: Document(**doc_data)
-                    for doc_hash, doc_data in data.items()
-                }
-                logger.info(f"已載入 {len(self.documents)} 個文檔的元數據")
-        except Exception as e:
-            logger.error(f"載入元數據失敗: {str(e)}")
-            self.documents = {}
-
-    def _save_metadata(self):
-        """保存文檔元數據"""
-        try:
-            self.metadata_file.parent.mkdir(parents=True, exist_ok=True)
-            data = {
-                doc_hash: {
-                    "content": doc.content,
-                    "metadata": doc.metadata,
-                    "doc_hash": doc.doc_hash,
-                    "created_at": doc.created_at,
-                    "updated_at": doc.updated_at
-                }
-                for doc_hash, doc in self.documents.items()
-            }
-            self.metadata_file.write_text(
-                json.dumps(data, ensure_ascii=False, indent=2),
-                encoding="utf-8"
-            )
-            logger.info(f"已保存 {len(self.documents)} 個文檔的元數據")
-        except Exception as e:
-            logger.error(f"保存元數據失敗: {str(e)}")
-
-    def _compute_hash(self, content: str) -> str:
-        """計算文檔雜湊值"""
-        return hashlib.sha256(content.encode()).hexdigest()
-
-    def add_document(
-        self,
-        content: str,
-        metadata: Optional[Dict[str, Any]] = None
-    ) -> Optional[Document]:
-        """添加新文檔"""
-        try:
-            doc_hash = self._compute_hash(content)
-            now = datetime.now().isoformat()
-
-            # 檢查是否為重複文檔
-            if doc_hash in self.documents:
-                logger.info(f"文檔已存在 (hash: {doc_hash})")
-                return None
-
-            # 建立文檔物件
-            document = Document(
-                content=content,
-                metadata=metadata or {},
-                doc_hash=doc_hash,
-                created_at=now,
-                updated_at=now
-            )
-
-            # 儲存文檔
-            self.documents[doc_hash] = document
-            self._save_metadata()
-
-            return document
-        except Exception as e:
-            logger.error(f"添加文檔失敗: {str(e)}")
-            return None
-
-    def get_document(self, doc_hash: str) -> Optional[Document]:
-        """獲取文檔"""
-        return self.documents.get(doc_hash)
-
-    def get_all_documents(self) -> List[Document]:
-        """獲取所有文檔"""
-        return list(self.documents.values())
-
-    def update_document(
-        self,
-        doc_hash: str,
-        content: str = None,
-        metadata: Dict[str, Any] = None
-    ) -> Optional[Document]:
-        """更新文檔"""
-        try:
-            if doc_hash not in self.documents:
-                logger.warning(f"文檔不存在 (hash: {doc_hash})")
-                return None
-
-            document = self.documents[doc_hash]
-            now = datetime.now().isoformat()
-
-            if content is not None:
-                new_hash = self._compute_hash(content)
-                if new_hash != doc_hash:
-                    logger.warning("文檔內容變更將產生新的文檔")
-                    return self.add_document(content, metadata or document.metadata)
-                document.content = content
-
-            if metadata is not None:
-                document.metadata.update(metadata)
-
-            document.updated_at = now
-            self._save_metadata()
-
-            return document
-        except Exception as e:
-            logger.error(f"更新文檔失敗: {str(e)}")
-            return None
-
-
-class DocumentProcessor:
-    """文件處理器"""
-    def __init__(
-        self,
-        chunk_size: int = 1000,
-        chunk_overlap: int = 200,
-        document_manager: Optional[DocumentManager] = None
-    ):
-        self.text_splitter = RecursiveCharacterTextSplitter(
-            chunk_size=chunk_size,
-            chunk_overlap=chunk_overlap,
-            length_function=len,
-            is_separator_regex=False,
+    # 使用文本分割器
+    text_splitter = RecursiveCharacterTextSplitter(
+        chunk_size=200,
+        chunk_overlap=50,
+        length_function=len,
+        separators=["\n\n", "\n", "。", "，", " "]
+    )
+    
+    # 分割文本
+    texts = text_splitter.split_text(long_text)
+    
+    # 建立文件列表
+    documents = []
+    for i, text in enumerate(texts):
+        metadata = DocumentMetadata(
+            source="wiki",
+            topic=f"台北資訊_{i+1}",
+            date="2024-03"
         )
-        self.document_manager = document_manager or DocumentManager()
+        documents.append(
+            Document(
+                page_content=text.strip(),
+                metadata=metadata.dict()
+            )
+        )
 
-    def process_documents(self, documents: List[str], metadata: Optional[List[Dict]] = None) -> List[str]:
-        """處理文件並分割成小塊"""
-        try:
-            chunks = []
-            for i, doc in enumerate(documents):
-                # 獲取或添加文檔
-                doc_metadata = metadata[i] if metadata and i < len(metadata) else {}
-                document = self.document_manager.get_document(
-                    self.document_manager._compute_hash(doc)
-                ) or self.document_manager.add_document(doc, doc_metadata)
+        print(f"{i} 份文件建立完成")
+        print(Document(
+                page_content=text.strip(),
+                metadata=metadata.dict()
+            ))
+        print("-" * 50)
+    
+    logger.info(f"已建立 {len(documents)} 份文件")
+    return documents
 
-                if document:  # 無論是新文檔還是既有文檔
-                    # 分割文檔
-                    doc_chunks = self.text_splitter.split_text(document.content)
-                    # 為每個分塊添加元數據
-                    for chunk in doc_chunks:
-                        chunks.append({
-                            "content": chunk,
-                            "metadata": {
-                                "doc_hash": document.doc_hash,
-                                "created_at": document.created_at,
-                                **document.metadata
-                            }
-                        })
-
-            if not chunks:
-                logger.warning("沒有文檔可處理")
-                return []
-
-            logger.info(f"已處理 {len(documents)} 個文檔，生成 {len(chunks)} 個文本塊")
-            return [chunk["content"] for chunk in chunks]
-        except Exception as e:
-            logger.error(f"文件處理失敗: {str(e)}")
-            raise
-
-
-class RAGSystem:
-    """RAG 系統實現"""
-    def __init__(self):
-        self.embeddings = OpenAIEmbeddings()
-        self.vectorstore = None
-        self.llm = ChatOpenAI(
+def create_rag_chain(long_text):
+    """建立 RAG Chain"""
+    try:
+        # 初始化 LLM
+        llm = ChatOpenAI(
+            model="gpt-3.5-turbo",
             temperature=0,
-            model="gpt-3.5-turbo"
+            streaming=True
         )
+        logger.info("LLM 初始化完成")
+        
+        # 初始化 Embeddings
+        embeddings = OpenAIEmbeddings()
+        logger.info("Embeddings 初始化完成")
+            
+            # 建立文件
+        documents = create_demo_documents(long_text)
 
-    def initialize_vectorstore(self, texts: List[str], persist_dir: str = "vectorstore"):
-        """初始化向量存儲"""
-        try:
-            # 檢查是否已存在向量存儲且有內容
-            if os.path.exists(persist_dir):
-                logger.info(f"載入既有向量存儲: {persist_dir}")
-                self.vectorstore = Chroma(
-                    persist_directory=persist_dir,
-                    embedding_function=self.embeddings,
-                    collection_name="langchain_collection"
-                )
-                # 檢查是否有內容
-                if len(self.vectorstore.get()["ids"]) == 0 and texts:
-                    logger.info("既有向量存儲為空，添加新文檔")
-                    self.vectorstore.add_texts(texts)
-            else:
-                # 只有在有文檔時才創建新的向量存儲
-                if texts:
-                    logger.info(f"創建新的向量存儲: {persist_dir}")
-                    self.vectorstore = Chroma.from_texts(
-                        texts=texts,
-                        embedding=self.embeddings,
-                        persist_directory=persist_dir,
-                        collection_name="langchain_collection"
-                    )
-                else:
-                    raise ValueError("沒有文檔可供初始化向量存儲")
+        
+        # 建立向量資料庫
+        vectorstore = Chroma.from_documents(
+            documents=documents,
+            embedding=embeddings,
+            collection_name="taipei_info" # 向量資料庫名稱 (no sql 都會有 collection 的概念)
+        )
+        logger.info("向量資料庫建立完成")
+        
+        # 建立 retriever
+        retriever = vectorstore.as_retriever(
+            search_type="similarity", # 搜尋類型
+            search_kwargs={"k": 3} # 搜尋結果數量 top k
+        )
+        
+        # 包裝 retriever 以顯示檢索結果
+        def retriever_with_score(query):
+            # 使用 similarity_search_with_score 直接獲取文件和分數
+            docs_and_scores = vectorstore.similarity_search_with_score(query, k=3)
+            print("\n=== 檢索結果 ===")
+            
+            # 轉換為 Document 列表
+            docs = []
+            for i, (doc, score) in enumerate(docs_and_scores, 1):
+                # 將相似度轉換為百分比（越高越相似）
+                similarity_percentage = (1 - score) * 100
+                print(f"\n文件 {i} (相似度: {similarity_percentage:.1f}%):")
+                print(f"內容: {doc.page_content}")
+                print(f"元數據: {doc.metadata}")
+                print("-" * 50)
+                docs.append(doc)
+            
+            return docs
+        
+        # 定義 prompt template
+        template = """根據以下資訊回答問題。如果無法從資訊中找到答案，請說明無法回答。
 
-            logger.info(f"向量存儲包含 {len(self.vectorstore.get()['ids'])} 個文檔")
-        except Exception as e:
-            logger.error(f"向量存儲初始化失敗: {str(e)}")
-            raise
+相關資訊：
+{context}
 
-    def create_retrieval_chain(self) -> Any:
-        """建立檢索鏈"""
-        # 定義提示詞模板
-        template = """根據以下資訊回答問題。如果無法從提供的資訊中找到答案，請說明無法回答。
+問題：{question}
 
-        資訊:
-        {context}
-
-        問題: {question}
-
-        請提供詳細且準確的回答。
-        """
-
+回答："""
+        
         prompt = ChatPromptTemplate.from_template(template)
-
-        # 建立檢索鏈
-        retriever = self.vectorstore.as_retriever(
-            search_type="similarity",
-            search_kwargs={"k": 3}
-        )
-
+        
+        # 建立 RAG chain，使用包裝後的 retriever
         chain = (
-            {
-                "context": retriever,
-                "question": RunnablePassthrough()
-            }
+            {"context": retriever_with_score, "question": RunnablePassthrough()}
             | prompt
-            | self.llm
+            | llm
             | StrOutputParser()
         )
-
+        logger.info("RAG Chain 建立完成")
+        
         return chain
-
-    def query(self, question: str) -> SearchResult:
-        """執行查詢"""
-        try:
-            # 獲取相關文檔
-            docs = self.vectorstore.similarity_search(question, k=3)
-            chunks = [doc.page_content for doc in docs]
-            sources = [getattr(doc.metadata, 'source', 'unknown') for doc in docs]
-
-            # 生成回答
-            chain = self.create_retrieval_chain()
-            answer = chain.invoke(question)
-
-            return SearchResult(
-                query=question,
-                relevant_chunks=chunks,
-                answer=answer,
-                sources=sources
-            )
-
-        except Exception as e:
-            logger.error(f"查詢執行失敗: {str(e)}")
-            raise
-
-
-def clean_database():
-    """清理並重建 Chroma 資料庫"""
-    try:
-        import chromadb
-        from chromadb.config import Settings
-        
-        # 清理舊的資料庫文件
-        paths_to_clean = [
-            "vectorstore",
-            "document_store",
-            ".chroma",
-            "chroma_store"
-        ]
-        
-        for path in paths_to_clean:
-            if os.path.exists(path):
-                shutil.rmtree(path)
-                logger.info(f"已清理目錄: {path}")
-        
-        # 初始化新的 Chroma 客戶端
-        client = chromadb.PersistentClient(
-            path="vectorstore"
-        )
-        
-        # 創建新的集合
-        collection = client.create_collection(
-            name="langchain_collection",
-            metadata={"hnsw:space": "cosine"}
-        )
-        
-        logger.info("已完成資料庫初始化")
-        
-    except Exception as e:
-        logger.error(f"資料庫清理失敗: {str(e)}")
-
-
-def demonstrate_rag(clean: bool = True):
-    """展示 RAG 系統的使用"""
-    if clean:
-        clean_database()  # 添加這行
     
-    persist_dir = "vectorstore"
-    document_store = "document_store"
-
-    # 如果需要清理
-    if clean:
-        clean_vectorstore(persist_dir)
-        clean_vectorstore(document_store)  # 同時清理文檔存儲
-
-    # 準備示例文檔
-    documents = [
-        """人工智慧（AI）是指由人製造出來的機器所表現出來的智慧。
-        通常人工智慧是指通過普通電腦程式來呈現人類智慧的技術。
-        該領域的研究包括機器人、語言識別、圖像識別、自然語言處理和專家系統等。""",
-
-        """機器學習是人工智慧的一個分支，主要特點是可以從數據中學習規律，
-        而無需明確編程。深度學習是機器學習的一個子領域，
-        使用多層神經網絡來學習數據的層次化表示。"""
-    ]
-
-    documents += [
-    """自然語言處理（NLP）是人工智慧的一個領域，研究計算機如何理解、
-    生成和處理人類語言。常見應用包括機器翻譯、文本分類、語音識別和聊天機器人等。""",
-
-    """計算機視覺是一種讓機器能夠理解和解釋視覺信息的技術。
-    它利用圖像處理、深度學習和模式識別等方法來分析圖像或影片，
-    主要應用於人臉識別、醫學影像分析和自動駕駛等領域。""",
-
-    """專家系統是一種基於知識庫和推理機制的人工智慧系統，
-    旨在模擬人類專家的決策能力。這類系統廣泛應用於醫療診斷、
-    工程設計、金融分析和其他需要專業知識的領域。"""
-]
-
-
-    try:
-        # 初始化文件處理器
-        processor = DocumentProcessor()
-        chunks = processor.process_documents(documents)
-
-        if not chunks:
-            logger.warning("沒有可用的文檔，無法進行演示")
-            return
-
-        # 初始化 RAG 系統
-        rag_system = RAGSystem()
-        rag_system.initialize_vectorstore(chunks, persist_dir)
-
-        # 測試查詢
-        test_questions = [
-            "什麼是人工智慧？",
-            "機器學習和深度學習有什麼關係？",
-            "請解釋神經網絡的原理",
-            "計算機視覺的常見應用有哪些？",
-            "專家系統的常見應用有哪些？"
-        ]
-
-
-        for question in test_questions:
-            print(f"\n問題: {question}")
-            result = rag_system.query(question)
-            print(f"回答: {result.answer}")
-            print("\n相關文本片段:")
-            for i, chunk in enumerate(result.relevant_chunks, 1):
-                print(f"{i}. {chunk[:100]}...")
-
     except Exception as e:
-        logger.error(f"示範執行失敗: {str(e)}")
-
-
-def clean_vectorstore(persist_dir: str):
-    """清理存儲目錄"""
-    try:
-        if os.path.exists(persist_dir):
-            shutil.rmtree(persist_dir)
-            logger.info(f"已清理目錄: {persist_dir}")
-    except Exception as e:
-        logger.error(f"清理目錄失敗: {str(e)}")
-
+        logger.error(f"建立 RAG Chain 時發生錯誤: {str(e)}")
+        raise
 
 def main():
     """主程式：展示 RAG 基礎功能"""
     print("=== LangChain 0.3+ RAG 基礎展示 ===\n")
-
+    
     if not os.getenv("OPENAI_API_KEY"):
         logger.error("請先設定 OPENAI_API_KEY 環境變數！")
         return
-
+        
     try:
-        # 首次運行時清理資料庫
-        clean_database()
-        demonstrate_rag(clean=False)  # 因為已經清理過，這裡設為 False
+        """建立示範文件"""
+        long_text = """
+                台北市位於台灣北部，是台灣的首都及最大的都市，人口約250萬。
+
+                作為政治、經濟、文化中心，台北擁有豐富的文化資產和現代化建設。
+
+                台北市分為12個行政區，每個區都有其特色與風貌。
+
+                例如，中正區匯聚了總統府、中正紀念堂等重要政府機構與歷史建築，是台灣政治心臟地帶；
+
+                信義區則是繁華的商業中心，以高樓大廈、百貨公司及時尚品牌聞名，吸引無數國內外旅客前來購物與觀光。
+
+
+
+                台北101是台北市最著名的地標建築，高度達509.2公尺，共101層樓，曾是世界最高建築。
+
+                大樓內設有觀景台、購物中心和美食街，訪客可以在高空俯瞰整個台北市景。
+
+                每年跨年時的煙火秀更是舉世聞名，璀璨的煙花照亮夜空，吸引成千上萬的觀光客和居民齊聚欣賞，已成為台北市年度最重要的盛事之一。
+
+
+
+                台北的夜市文化聞名世界，是體驗在地生活的最佳場所。
+
+                士林夜市是規模最大的夜市，以各式小吃、服飾、精品聞名，無論是香氣撲鼻的蚵仔煎、鹹香酥脆的雞排，還是獨具特色的士林大香腸，都讓人垂涎三尺，流連忘返。
+
+                而饒河街夜市則以傳統美食及民俗小吃著稱，必吃的胡椒餅外皮香脆、內餡多汁，深受遊客喜愛。
+
+                此外，寧夏夜市則是以傳統台灣小吃為主，被譽為「台北最道地的夜市」，讓人一站式品嚐牛肉湯、魷魚羹、芋圓等經典美味。
+
+
+
+                台北市的交通便捷，大眾運輸系統發達，捷運系統包含多條路線，連接大台北地區，讓市民與遊客能夠輕鬆往來各大景點與商業區。
+
+                台北車站作為交通樞紐，整合了捷運、台鐵、高鐵等多種運輸方式，使得往來台灣各地的交通更加便利。
+
+                此外，公車路網密集且規劃完善，加上 YouBike 共享單車系統的推廣，讓台北成為一座綠色低碳的現代都市。
+
+
+
+                除了現代化的都市風貌，台北市也擁有豐富的自然景觀。
+
+                陽明山國家公園是都市人休閒放鬆的好去處，春天可賞櫻，秋冬則能欣賞壯麗的芒草美景。
+
+                此外，北投地區因擁有豐富的溫泉資源而聞名，日式溫泉旅館林立，是寒冷冬季泡湯放鬆的絕佳選擇。
+
+                而象山步道則是欣賞台北101與市區美景的熱門登山路線，短短的步道卻能讓人感受到大自然的清新與城市的壯麗交織。
+
+
+
+                台北市也是文化藝術的重鎮，擁有眾多博物館與藝文中心。
+
+                國立故宮博物院收藏了無數中國古代珍貴文物，如翠玉白菜、肉形石等國寶級藝術品，每年吸引大量國內外遊客參觀。
+
+                松山文創園區與華山1914文化創意產業園區則是年輕人最愛的藝文展覽與市集活動據點，許多獨立設計師與手作藝術家在此展示他們的創意作品，讓台北市成為文創產業蓬勃發展的城市。
+
+
+
+                此外，台北的節慶活動豐富多彩，不僅有著名的台北燈節、龍山寺農曆新年祈福活動，還有國際藝術節、電影節等文化盛事，每年都吸引大量民眾共襄盛舉。
+
+                而台北市政府也積極推動國際活動，例如台北馬拉松、國際動漫展等，提升台北在國際間的能見度。
+
+
+
+                整體而言，台北市融合了現代與傳統、都市與自然，無論是科技發展、交通便捷、文化藝術，還是美食與夜生活，皆展現出獨特的魅力，讓每一位來訪的旅人都能留下美好的回憶。
+
+                這座充滿活力的城市，無論白天或夜晚，都有無數值得探索的故事與風景，等待著人們細細品味。
+                """
+
+        # 建立 RAG chain
+        logger.info("開始建立 RAG Chain...")
+        chain = create_rag_chain(long_text)
+        
+        # 測試問題
+        questions = [
+            # "台北101有多高？",
+            # "台北有什麼著名的夜市？",
+            # "台北的人口多少？",
+            # "台北捷運和台北車站扮演什麼角色？",
+            # "台北市有幾個行政區？",
+            # "台北101每年有什麼特別活動？",
+            # "陽明山有什麼特色？",  # 新增自然景觀相關問題
+            "台北捷運什麼時候開始營運的？"  # 測試未知資訊
+        ]
+        
+        logger.info("開始 RAG 問答測試...")
+        print("-" * 50)
+        
+        for question in questions:
+            print(f"\n問題：{question}")
+            try:
+                response = chain.invoke(question)
+                print(f"\n最終回答：{response}")
+                print("=" * 80)
+            except Exception as e:
+                logger.error(f"處理問題時發生錯誤: {str(e)}", exc_info=True)
+                print(f"回答：處理問題時發生錯誤")
+            print("-" * 50)
+            
     except Exception as e:
-        logger.error(f"執行過程發生錯誤: {str(e)}")
-
-
+        logger.error(f"執行主程式時發生錯誤: {str(e)}", exc_info=True)
+        raise
 
 if __name__ == "__main__":
     main()
