@@ -76,11 +76,17 @@ class VectorStoreEvaluator:
         try:
             start_time = time.time()
             
-            # 初始化 Chroma
+            # 建立向量存儲目錄
+            # persist_directory = os.path.join("vectorstore", "chroma_store")
+            # os.makedirs(persist_directory, exist_ok=True)
+            
+            embeddings = OpenAIEmbeddings()
+            
             vectorstore = Chroma.from_texts(
                 texts=texts,
-                embedding=self.embeddings,
-                persist_directory="chroma_store"
+                embedding=embeddings,
+                collection_name="chroma_store",
+                # persist_directory=persist_directory
             )
             
             insert_time = time.time() - start_time
@@ -91,6 +97,7 @@ class VectorStoreEvaluator:
             results = vectorstore.similarity_search(query, k=5)
             query_time = time.time() - start_time
             
+            print(results)
             # 計算記憶體使用
             import psutil
             memory_usage = psutil.Process().memory_info().rss / 1024 / 1024  # MB
@@ -118,7 +125,9 @@ class VectorStoreEvaluator:
             # 初始化 FAISS
             vectorstore = FAISS.from_texts(
                 texts=texts,
-                embedding=self.embeddings
+                embedding=self.embeddings,
+                # collection_name="faiss_store"
+
             )
             
             insert_time = time.time() - start_time
@@ -157,6 +166,7 @@ class VectorStoreEvaluator:
             vectorstore = Milvus.from_texts(
                 texts=texts,
                 embedding=self.embeddings,
+                collection_name="milvus_store",
                 connection_args={"host": "localhost", "port": "19530"}
             )
             
@@ -247,9 +257,9 @@ class VectorStoreEvaluator:
         # 評估各個向量資料庫
         evaluations = [
             self.evaluate_chroma(texts),
-            self.evaluate_faiss(texts),
-            self.evaluate_milvus(texts),
-            self.evaluate_pinecone(texts)
+            # self.evaluate_faiss(texts),
+            # self.evaluate_milvus(texts),
+            # self.evaluate_pinecone(texts)
         ]
         
         # 轉換為 DataFrame

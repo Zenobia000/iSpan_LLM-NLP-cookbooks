@@ -18,7 +18,7 @@ from langchain_core.documents import Document
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.runnables import RunnablePassthrough
-from langchain_community.embeddings import OpenAIEmbeddings
+from langchain_openai import OpenAIEmbeddings
 from langchain_community.vectorstores import Chroma
 from langchain_openai import ChatOpenAI
 from langchain_text_splitters import RecursiveCharacterTextSplitter
@@ -30,7 +30,7 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-# 載入環境變數
+# 載入環境變數 
 load_dotenv()
 
 class DocumentMetadata(BaseModel):
@@ -77,12 +77,12 @@ def create_demo_documents(long_text) -> List[Document]:
     logger.info(f"已建立 {len(documents)} 份文件")
     return documents
 
-def create_rag_chain(long_text):
+def create_rag_chain(article_text, model_name = "gpt-3.5-turbo", collection_name="taipei_info"):
     """建立 RAG Chain"""
     try:
         # 初始化 LLM
         llm = ChatOpenAI(
-            model="gpt-3.5-turbo",
+            model=model_name,
             temperature=0,
             streaming=True
         )
@@ -91,56 +91,76 @@ def create_rag_chain(long_text):
         # 初始化 Embeddings
         embeddings = OpenAIEmbeddings()
         logger.info("Embeddings 初始化完成")
-            
-            # 建立文件
-        documents = create_demo_documents(long_text)
-
+        
+        # 建立文件
+        documents = create_demo_documents(article_text)
         
         # 建立向量資料庫
         vectorstore = Chroma.from_documents(
             documents=documents,
             embedding=embeddings,
-            collection_name="taipei_info" # 向量資料庫名稱 (no sql 都會有 collection 的概念)
+            collection_name=collection_name
         )
         logger.info("向量資料庫建立完成")
         
         # 建立 retriever
         retriever = vectorstore.as_retriever(
-            search_type="similarity", # 搜尋類型
-            search_kwargs={"k": 3} # 搜尋結果數量 top k
+            search_type="similarity",  # 使用相似度搜尋
+            search_kwargs={
+                "k": 3,  # 返回前 k 個結果
+                # 移除 score_threshold
+            }
         )
         
         # 包裝 retriever 以顯示檢索結果
         def retriever_with_score(query):
-            # 使用 similarity_search_with_score 直接獲取文件和分數
-            docs_and_scores = vectorstore.similarity_search_with_score(query, k=3)
+            # 使用 retriever 進行查詢，改用 invoke 方法
+            docs = retriever.invoke(query)
             print("\n=== 檢索結果 ===")
             
-            # 轉換為 Document 列表
-            docs = []
-            for i, (doc, score) in enumerate(docs_and_scores, 1):
-                # 將相似度轉換為百分比（越高越相似）
-                similarity_percentage = (1 - score) * 100
-                print(f"\n文件 {i} (相似度: {similarity_percentage:.1f}%):")
+            # 使用 embeddings 計算實際相似度
+            query_embedding = embeddings.embed_query(query)
+            
+            # 取得文件的 embeddings
+            doc_embeddings = [embeddings.embed_documents([doc.page_content])[0] for doc in docs]
+            
+            # 計算餘弦相似度
+            from sklearn.metrics.pairwise import cosine_similarity
+            import numpy as np
+            
+            similarities = [
+                cosine_similarity(
+                    np.array(query_embedding).reshape(1, -1),
+                    np.array(doc_embedding).reshape(1, -1)
+                )[0][0] for doc_embedding in doc_embeddings
+            ]
+            
+            # 轉換為百分比
+            similarity_percentages = [sim * 100 for sim in similarities]
+            
+            # 顯示結果
+            for i, (doc, similarity) in enumerate(zip(docs, similarity_percentages), 1):
+                print(f"\n文件 {i} (相似度: {similarity:.1f}%):")
                 print(f"內容: {doc.page_content}")
                 print(f"元數據: {doc.metadata}")
                 print("-" * 50)
-                docs.append(doc)
             
             return docs
+        
+       
         
         # 定義 prompt template
         template = """根據以下資訊回答問題。如果無法從資訊中找到答案，請說明無法回答。
 
-相關資訊：
-{context}
+                    相關資訊：
+                            {context}
 
-問題：{question}
+                    問題：{question}
 
-回答："""
-        
+                    回答："""
+
         prompt = ChatPromptTemplate.from_template(template)
-        
+
         # 建立 RAG chain，使用包裝後的 retriever
         chain = (
             {"context": retriever_with_score, "question": RunnablePassthrough()}
@@ -149,9 +169,9 @@ def create_rag_chain(long_text):
             | StrOutputParser()
         )
         logger.info("RAG Chain 建立完成")
-        
+
         return chain
-    
+
     except Exception as e:
         logger.error(f"建立 RAG Chain 時發生錯誤: {str(e)}")
         raise
@@ -159,11 +179,11 @@ def create_rag_chain(long_text):
 def main():
     """主程式：展示 RAG 基礎功能"""
     print("=== LangChain 0.3+ RAG 基礎展示 ===\n")
-    
+
     if not os.getenv("OPENAI_API_KEY"):
         logger.error("請先設定 OPENAI_API_KEY 環境變數！")
         return
-        
+
     try:
         """建立示範文件"""
         long_text = """

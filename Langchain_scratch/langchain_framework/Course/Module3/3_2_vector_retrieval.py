@@ -12,18 +12,19 @@ LangChain 向量檢索進階範例
 import os
 import logging
 import numpy as np
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Set, Optional
 from collections import Counter
 from dotenv import load_dotenv
 from pydantic import BaseModel, Field
 from langchain_core.documents import Document
-from langchain_core.output_parsers import StrOutputParser
-from langchain_core.prompts import ChatPromptTemplate
-from langchain_core.runnables import RunnablePassthrough
-from langchain_community.embeddings import OpenAIEmbeddings
+from langchain_openai import OpenAIEmbeddings
 from langchain_community.vectorstores import Chroma
-from langchain_openai import ChatOpenAI
-from langchain_text_splitters import RecursiveCharacterTextSplitter
+import jieba  # 導入結巴分詞
+from time import perf_counter
+from dataclasses import dataclass
+from sklearn.metrics.pairwise import cosine_similarity
+import shutil
+from pathlib import Path
 
 # 設定日誌
 logging.basicConfig(
@@ -35,11 +36,18 @@ logger = logging.getLogger(__name__)
 # 載入環境變數
 load_dotenv()
 
+@dataclass
+class RetrievalMetrics:
+    """檢索評估指標"""
+    search_time: float  # 搜尋時間（秒）
+    normalized_score: float  # 正規化分數 (0-100)
+    raw_score: float  # 原始分數
+
 class RetrievalResult(BaseModel):
     """檢索結果模型"""
     content: str = Field(description="文件內容")
     metadata: Dict[str, Any] = Field(description="文件元數據")
-    score: float = Field(description="相似度分數")
+    metrics: RetrievalMetrics = Field(description="檢索評估指標")
     method: str = Field(description="檢索方法")
 
 class BM25:
@@ -60,18 +68,23 @@ class BM25:
         self.idf = {}  # 逆文檔頻率
         self.doc_len = []  # 文檔長度
         self.avgdl = 0  # 平均文檔長度
+        self._tokenizer = jieba.cut  # 使用結巴分詞
         
+    def _tokenize(self, text: str) -> List[str]:
+        """使用結巴分詞進行分詞"""
+        return [token for token in self._tokenizer(text) if token.strip()]
+    
     def fit(self, documents: List[str]):
         """訓練 BM25 模型"""
         self.corpus_size = len(documents)
         
         # 計算文檔頻率和長度
         for doc in documents:
-            words = doc.split()
-            self.doc_len.append(len(words))
+            tokens = self._tokenize(doc)
+            self.doc_len.append(len(tokens))
             
             # 計算每個詞在文檔中的出現次數
-            word_set = set(words)
+            word_set = set(tokens)
             for word in word_set:
                 self.doc_freqs[word] += 1
         
@@ -85,23 +98,25 @@ class BM25:
     def get_scores(self, query: str, documents: List[str]) -> List[float]:
         """計算查詢與所有文檔的 BM25 分數"""
         scores = []
-        query_words = query.split()
+        query_tokens = self._tokenize(query)
         
         for idx, doc in enumerate(documents):
             score = 0
-            doc_words = doc.split()
-            doc_len = len(doc_words)
-            word_freqs = Counter(doc_words)
+            doc_tokens = self._tokenize(doc)
+            doc_len = len(doc_tokens)
+            doc_freqs = Counter(doc_tokens)
             
-            for word in query_words:
+            for word in query_tokens:
                 if word not in self.idf:
                     continue
                     
-                # 計算 BM25 分數
-                freq = word_freqs[word]
-                numerator = self.idf[word] * freq * (self.k1 + 1)
+                # 計算 TF
+                freq = doc_freqs.get(word, 0)
+                numerator = freq * (self.k1 + 1)
                 denominator = freq + self.k1 * (1 - self.b + self.b * doc_len / self.avgdl)
-                score += numerator / denominator
+                
+                # 計算該詞的 BM25 分數
+                score += self.idf[word] * numerator / denominator
             
             scores.append(score)
         
@@ -110,14 +125,32 @@ class BM25:
 class VectorRetriever:
     """向量檢索器"""
     
-    def __init__(self, documents: List[Document]):
-        """初始化向量檢索器"""
+    def __init__(self, documents: List[Document], collection_name: str = "taipei_advanced"):
+        """
+        初始化向量檢索器
+        
+        Args:
+            documents: 文檔列表
+            collection_name: 集合名稱（只能包含字母、數字、下劃線和連字符）
+        """
         self.documents = documents
+        self.collection_name = collection_name
+        # 建立向量存儲目錄
+        self.persist_directory = os.path.join("vectorstore", self.collection_name)
+        os.makedirs(self.persist_directory, exist_ok=True)
+        
         self.embeddings = OpenAIEmbeddings()
+        
+        # 預先計算所有文檔的向量表示
+        self.doc_vectors = self.embeddings.embed_documents(
+            [doc.page_content for doc in documents]
+        )
+        
         self.vectorstore = Chroma.from_documents(
             documents=documents,
             embedding=self.embeddings,
-            collection_name="taipei_advanced"
+            collection_name=self.collection_name,
+            persist_directory=self.persist_directory
         )
         
         # 初始化 BM25
@@ -126,76 +159,148 @@ class VectorRetriever:
         self.bm25.fit(texts)
         
         logger.info("向量檢索器初始化完成")
+
+    
+    def _compute_similarity(self, query_vector: List[float], doc_vector: List[float]) -> float:
+        """計算向量相似度（統一使用餘弦相似度）"""
+        query_array = np.array(query_vector).reshape(1, -1)
+        doc_array = np.array(doc_vector).reshape(1, -1)
+        return cosine_similarity(query_array, doc_array)[0][0]
+    
+    def _get_query_vector(self, query: str) -> List[float]:
+        """獲取查詢的向量表示"""
+        return self.embeddings.embed_query(query)
     
     def similarity_search(self, query: str, k: int = 3) -> List[RetrievalResult]:
         """相似度搜尋"""
-        results = self.vectorstore.similarity_search_with_score(query, k=k)
+        start_time = perf_counter()
+        
+        # 計算查詢向量
+        query_vector = self._get_query_vector(query)
+        
+        # 計算所有文檔的相似度
+        similarities = [
+            self._compute_similarity(query_vector, doc_vector)
+            for doc_vector in self.doc_vectors
+        ]
+        
+        # 獲取前 k 個最相似的文檔
+        top_k_idx = np.argsort(similarities)[-k:][::-1]
+        
+        search_time = perf_counter() - start_time
+        
         return [
             RetrievalResult(
-                content=doc.page_content,
-                metadata=doc.metadata,
-                score=(1 - score) * 100,  # 轉換為百分比
+                content=self.documents[idx].page_content,
+                metadata=self.documents[idx].metadata,
+                metrics=RetrievalMetrics(
+                    search_time=search_time,
+                    normalized_score=similarities[idx] * 100,  # 直接轉換為百分比
+                    raw_score=similarities[idx]
+                ),
                 method="similarity"
             )
-            for doc, score in results
+            for idx in top_k_idx
         ]
     
-    def mmr_search(
-        self, query: str, k: int = 3, fetch_k: int = 6, lambda_mult: float = 0.7
-    ) -> List[RetrievalResult]:
-        """最大邊際相關性搜尋 (Maximal Marginal Relevance)"""
-        # 先將查詢轉換為向量
-        query_embedding = self.embeddings.embed_query(query)
+    def mmr_search(self, query: str, k: int = 3, lambda_mult: float = 0.7) -> List[RetrievalResult]:
+        """最大邊際相關性搜尋"""
+        start_time = perf_counter()
         
-        # 使用 MMR 搜尋
-        results = self.vectorstore.max_marginal_relevance_search_by_vector(
-            embedding=query_embedding,
-            k=k,
-            fetch_k=fetch_k,
-            lambda_mult=lambda_mult
-        )
+        # 計算查詢向量
+        query_vector = self._get_query_vector(query)
         
-        # 計算相似度分數
-        scores = []
-        for doc in results:
-            doc_embedding = self.embeddings.embed_documents([doc.page_content])[0]
-            similarity = np.dot(query_embedding, doc_embedding) / (
-                np.linalg.norm(query_embedding) * np.linalg.norm(doc_embedding)
-            )
-            scores.append(similarity)
+        # 使用 MMR 算法選擇文檔
+        selected_indices = []
+        candidate_indices = list(range(len(self.documents)))
         
-        # 組合結果
+        # 先計算所有文檔與查詢的相似度
+        similarities = [
+            self._compute_similarity(query_vector, self.doc_vectors[idx])
+            for idx in range(len(self.documents))
+        ]
+        
+        for _ in range(k):
+            if not candidate_indices:
+                break
+                
+            # 計算候選文檔與查詢的相似度
+            candidate_similarities = [
+                similarities[idx] for idx in candidate_indices
+            ]
+            
+            if not selected_indices:
+                # 第一個文檔：選擇最相似的
+                best_idx = candidate_indices[np.argmax(candidate_similarities)]
+                selected_indices.append(best_idx)
+                candidate_indices.remove(best_idx)
+            else:
+                # 後續文檔：使用 MMR 公式
+                mmr_scores = []
+                for cand_idx, sim in zip(candidate_indices, candidate_similarities):
+                    # 計算與已選文檔的最大相似度
+                    redundancy = max(
+                        self._compute_similarity(
+                            self.doc_vectors[cand_idx],
+                            self.doc_vectors[sel_idx]
+                        )
+                        for sel_idx in selected_indices
+                    )
+                    mmr_score = lambda_mult * sim - (1 - lambda_mult) * redundancy
+                    mmr_scores.append(mmr_score)
+                
+                best_idx = candidate_indices[np.argmax(mmr_scores)]
+                selected_indices.append(best_idx)
+                candidate_indices.remove(best_idx)
+        
+        search_time = perf_counter() - start_time
+        
         return [
             RetrievalResult(
-                content=doc.page_content,
-                metadata=doc.metadata,
-                score=score * 100,  # 轉換為百分比
+                content=self.documents[idx].page_content,
+                metadata=self.documents[idx].metadata,
+                metrics=RetrievalMetrics(
+                    search_time=search_time,
+                    normalized_score=similarities[idx] * 100,  # 使用預先計算的相似度
+                    raw_score=similarities[idx]
+                ),
                 method="mmr"
             )
-            for doc, score in zip(results, scores)
+            for idx in selected_indices
         ]
     
     def bm25_search(self, query: str, k: int = 3) -> List[RetrievalResult]:
-        """BM25 搜尋"""
+        """BM25 搜尋，最終以餘弦相似度衡量相似度"""
+        start_time = perf_counter()
+        
         texts = [doc.page_content for doc in self.documents]
-        scores = self.bm25.get_scores(query, texts)
         
-        # 獲取前 k 個最高分數的索引
-        top_k_idx = np.argsort(scores)[-k:][::-1]
+        # BM25 計算原始分數
+        bm25_scores = self.bm25.get_scores(query, texts)
+
+        # 取得前 k 個文檔索引
+        top_k_idx = np.argsort(bm25_scores)[-k:][::-1]
+
+        # 計算查詢向量
+        query_vector = self._get_query_vector(query)
         
-        results = []
-        for idx in top_k_idx:
-            # 將分數正規化到 0-100 範圍
-            normalized_score = min(100, scores[idx] * 10)  # 調整係數以獲得合理的分數範圍
-            results.append(
-                RetrievalResult(
-                    content=self.documents[idx].page_content,
-                    metadata=self.documents[idx].metadata,
-                    score=normalized_score,
-                    method="bm25"
-                )
+        search_time = perf_counter() - start_time
+
+        return [
+            RetrievalResult(
+                content=self.documents[idx].page_content,
+                metadata=self.documents[idx].metadata,
+                metrics=RetrievalMetrics(
+                    search_time=search_time,
+                    normalized_score=self._compute_similarity(query_vector, self.doc_vectors[idx]) * 100,  # 轉為百分比
+                    raw_score=bm25_scores[idx]  # 保留原始 BM25 分數
+                ),
+                method="bm25"
             )
-        return results
+            for idx in top_k_idx
+        ]
+
+
 
 def create_demo_documents() -> List[Document]:
     """建立示範文件"""
@@ -237,32 +342,23 @@ def compare_retrieval_methods(query: str):
     print(f"\n查詢: {query}")
     print("=" * 50)
     
-    # 相似度搜尋
-    print("\n【相似度搜尋結果】")
-    similarity_results = retriever.similarity_search(query)
-    for i, result in enumerate(similarity_results, 1):
-        print(f"\n文件 {i} (相似度: {result.score:.1f}%)")
-        print(f"內容: {result.content}")
-        print(f"元數據: {result.metadata}")
-        print("-" * 40)
+    methods = {
+        "相似度搜尋": retriever.similarity_search,
+        "MMR 搜尋": retriever.mmr_search,
+        "BM25 搜尋": retriever.bm25_search
+    }
     
-    # MMR 搜尋
-    print("\n【MMR 搜尋結果】")
-    mmr_results = retriever.mmr_search(query)
-    for i, result in enumerate(mmr_results, 1):
-        print(f"\n文件 {i} (相似度: {result.score:.1f}%)")
-        print(f"內容: {result.content}")
-        print(f"元數據: {result.metadata}")
-        print("-" * 40)
-    
-    # BM25 搜尋
-    print("\n【BM25 搜尋結果】")
-    bm25_results = retriever.bm25_search(query)
-    for i, result in enumerate(bm25_results, 1):
-        print(f"\n文件 {i} (相關度: {result.score:.1f}%)")
-        print(f"內容: {result.content}")
-        print(f"元數據: {result.metadata}")
-        print("-" * 40)
+    for method_name, search_func in methods.items():
+        print(f"\n【{method_name}結果】")
+        results = search_func(query)
+        for i, result in enumerate(results, 1):
+            metrics = result.metrics
+            print(f"\n文件 {i}")
+            print(f"相似度: {metrics.normalized_score:.1f}% (原始分數: {metrics.raw_score:.4f})")
+            print(f"搜尋時間: {metrics.search_time*1000:.2f}ms")
+            print(f"內容: {result.content}")
+            print(f"元數據: {result.metadata}")
+            print("-" * 40)
 
 def main():
     """主程式：展示向量檢索進階功能"""
@@ -281,9 +377,9 @@ def main():
         # 測試查詢
         queries = [
             "台北的交通系統",
-            "台北的文化景點",
-            "台北的地標建築",
-            "台北的自然景觀"
+            # "台北的文化景點",
+            # "台北的地標建築",
+            # "台北的自然景觀"
         ]
         
         for query in queries:

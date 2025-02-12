@@ -144,11 +144,11 @@ Course/
     [X] 2.3 Agent 自動化
 [ ] 建立 Module3 範例
     [X] 3.1 RAG 基礎
-    [ ] 3.2 向量檢索
-        [ ] 3.2.1 向量資料庫比較 (vectorstores_comparison.py)
-        [ ] 3.2.2 Embedding 模型比較 (embedding_models.py)
-        [ ] 3.2.3 相似度搜尋方法比較 (similarity_search.py)
-    [ ] 3.3 文件載入器
+    [X] 3.2 向量檢索
+        [X] 3.2.1 向量資料庫比較 (vectorstores_comparison.py)
+        [X] 3.2.2 Embedding 模型比較 (embedding_models.py)
+        [X] 3.2.3 相似度搜尋方法比較 (similarity_search.py)
+    [X] 3.3 文件載入器
     [ ] 3.4 文本分割
     [ ] 3.5 自定義模型
 [ ] 建立 Module4 範例
@@ -156,12 +156,12 @@ Course/
 
 ### Notes
 - Module1 和 Module2 已完成
-- Module3 將專注於 RAG (Retrieval Augmented Generation) 相關功能
-- 下一步：建立 3.1 RAG 基礎範例，展示基本的檢索增強生成流程
-- Module3.2 將分成三個子主題檔案
-- 需要實作搜尋評估指標
-- 使用 pandas DataFrame 輸出比較報表
-- 確保所有實作都使用 langchain 0.3+ API
+- Module3 已完成 3.1-3.3
+- 3.1 展示了基本的 RAG 流程
+- 3.2 實現了三種檢索方法：相似度、MMR、BM25
+- 3.3 展示了多種文件載入器和自定義載入器
+- 下一步：建立 3.4 文本分割範例
+- 需要展示不同的分割策略和參數調優
 
 ### Lessons Learned
 - 使用 langchain 0.3+ 的新 API 結構
@@ -172,20 +172,46 @@ Course/
 - 使用 ChatAnthropic 替代舊版的 Anthropic
 - 需要安裝 pandas-stubs 以解決類型提示問題
 - 使用 pydantic v2 (>=2.0.0) 而不是 langchain_core.pydantic_v1
-- 向量資料庫選項：Chroma、FAISS、Milvus、Pinecone
-- 評估指標：MRR (Mean Reciprocal Rank)、MAP (Mean Average Precision)、NDCG
-- 相似度搜尋方法：Cosine Similarity、MMR (Maximal Marginal Relevance)、BM25
-- 需要安裝額外套件：faiss-cpu、pymilvus、pinecone-client
-- # Chroma 相關經驗
-- - 從 langchain_community.vectorstores 改為使用 langchain_chroma
-- - Chroma Client API 改用 PersistentClient 替代舊版 Client
-- - 需要指定 collection_name 以避免衝突
-- - 使用 get()["ids"] 替代 _collection.count() 來獲取文檔數量
-- - 不再需要手動調用 persist() 方法
-- - 建議使用 chromadb>=0.4.17,<0.5.0 以避免 API 不相容問題
-- 
-- # 資料庫管理經驗
-- - 在初始化前清理舊的資料庫文件
-- - 使用 cosine 相似度空間配置
-- - 資料庫路徑需要一致性管理
-- - 建議實作資料庫清理和重建功能
+- BaseRetriever.get_relevant_documents 已棄用，應使用 invoke 方法
+- 需要安裝 scikit-learn 以使用 cosine_similarity
+
+# RAG 相關經驗
+- 不同檢索方法的分數需要正規化到相同範圍 (0-100)
+- 相似度計算方法：
+  - 統一使用向量的餘弦相似度作為基準
+  - 預先計算所有文檔的向量表示以提高效率
+  - MMR 使用同一向量空間計算相似度和冗餘度
+  - BM25 分數需要通過向量相似度重新校準
+- 需要記錄搜尋時間以評估性能
+- 原始分數和正規化分數都應該保留以便分析
+- 使用 perf_counter 而不是 time.time 以獲得更精確的時間測量
+- 向量計算應使用 numpy 提高效率
+- 相似度計算應考慮數值穩定性
+
+# Chroma 相關經驗
+- 從 langchain_community.vectorstores 改為使用 langchain_chroma
+- Chroma Client API 改用 PersistentClient 替代舊版 Client
+- collection_name 命名規則：
+  - 長度在 3-63 字符之間
+  - 只能包含字母、數字、下劃線和連字符
+  - 開頭和結尾必須是字母或數字
+  - 不能包含連續的句點
+  - 不能是有效的 IPv4 地址
+- persist_directory 用於指定向量資料庫的存儲位置
+- 需要確保存儲目錄存在
+- 使用 os.makedirs 建立目錄結構
+- 使用 exist_ok=True 避免目錄已存在的錯誤
+
+# 文件載入器經驗
+- 文件載入器應從 langchain_community.document_loaders 導入
+- 自定義載入器應繼承 langchain_core.document_loaders.BaseLoader
+- Pydantic 模型的字串欄位不接受 Path 物件，需要使用 str() 轉換
+- 使用 Path 物件處理檔案路徑時，傳給 loader 前需要轉換為字串
+- 在 Windows 系統上處理含中文的 CSV 檔案時，需要明確指定 UTF-8 編碼
+- JSONLoader 的 metadata_func 需要接受兩個參數：metadata 和 additional_fields
+
+# 資料庫管理經驗
+- 在初始化前清理舊的資料庫文件
+- 使用 cosine 相似度空間配置
+- 資料庫路徑需要一致性管理
+- 建議實作資料庫清理和重建功能
