@@ -14,22 +14,22 @@ LangChain 0.3+ 向量資料庫比較
 - python-dotenv>=0.19.0
 """
 
+"""
+LangChain 0.3+ 向量資料庫比較
+比較不同向量資料庫的性能與特性
+"""
+
 import os
 import time
 import pandas as pd
 import numpy as np
-from typing import List, Dict, Any
+from typing import List
 from dataclasses import dataclass
 from datetime import datetime
 import logging
 from dotenv import load_dotenv
-
-from langchain_community.vectorstores import (
-    Chroma,
-    FAISS,
-    Milvus,
-    Pinecone
-)
+from langchain.schema import Document
+from langchain_community.vectorstores import Chroma, FAISS, Milvus, Pinecone
 from langchain_openai import OpenAIEmbeddings
 import pinecone
 from chromadb.config import Settings
@@ -37,10 +37,7 @@ from langchain_core.documents import Document
 
 
 # 設定日誌
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(levelname)s - %(message)s'
-)
+logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 logger = logging.getLogger(__name__)
 
 # 載入環境變數
@@ -104,14 +101,13 @@ class VectorStoreEvaluator:
             vectorstore = Chroma.from_documents(
                 documents=documents,
                 embedding=embeddings,
-                collection_name="chroma_store",
+                collection_name="chroma_store_test",
                 persist_directory=persist_directory,
                 client_settings=client_settings
             )
-            
             insert_time = time.time() - start_time
-            
-            # 測試查詢性能
+
+            # 測試查詢
             query = "test document about topic 5"
             start_time = time.time()
             results = vectorstore.similarity_search(query, k=5)  # 使用基本搜尋
@@ -126,14 +122,6 @@ class VectorStoreEvaluator:
             # 計算記憶體使用
             import psutil
             memory_usage = psutil.Process().memory_info().rss / 1024 / 1024  # MB
-            
-            # 清理資料庫文件
-            try:
-                import shutil
-                shutil.rmtree(persist_directory)
-                logger.info(f"已清理 Chroma 資料庫: {persist_directory}")
-            except Exception as e:
-                logger.warning(f"清理 Chroma 資料庫時發生錯誤: {str(e)}")
             
             return VectorStoreMetrics(
                 name="Chroma",
@@ -150,37 +138,27 @@ class VectorStoreEvaluator:
             logger.error(f"Chroma 評估失敗: {str(e)}")
             raise
 
-    def evaluate_faiss(self, texts: List[str]) -> VectorStoreMetrics:
+    def evaluate_faiss(self, documents: List[Document]) -> VectorStoreMetrics:
         """評估 FAISS"""
         try:
             start_time = time.time()
-            
-            # 初始化 FAISS
-            vectorstore = FAISS.from_texts(
-                texts=texts,
-                embedding=self.embeddings,
-                # collection_name="faiss_store"
-
-            )
-            
+            vectorstore = FAISS.from_documents(documents=documents, embedding=self.embeddings)
             insert_time = time.time() - start_time
-            
-            # 測試查詢性能
+
             query = "test document about topic 5"
             start_time = time.time()
             results = vectorstore.similarity_search(query, k=5)
             query_time = time.time() - start_time
-            
-            # 計算記憶體使用
+
             import psutil
             memory_usage = psutil.Process().memory_info().rss / 1024 / 1024
-            
+
             return VectorStoreMetrics(
                 name="FAISS",
                 insert_time=insert_time,
                 query_time=query_time,
                 memory_usage=memory_usage,
-                accuracy=0.98,  # 基於實際測試調整
+                accuracy=0.98,
                 setup_complexity=2,
                 maintenance_cost=2,
                 scalability=4,
@@ -190,31 +168,26 @@ class VectorStoreEvaluator:
             logger.error(f"FAISS 評估失敗: {str(e)}")
             raise
 
-    def evaluate_milvus(self, texts: List[str]) -> VectorStoreMetrics:
+    def evaluate_milvus(self, documents: List[Document]) -> VectorStoreMetrics:
         """評估 Milvus"""
         try:
             start_time = time.time()
-            
-            # 初始化 Milvus
-            vectorstore = Milvus.from_texts(
-                texts=texts,
+            vectorstore = Milvus.from_documents(
+                documents=documents,
                 embedding=self.embeddings,
                 collection_name="milvus_store",
                 connection_args={"host": "localhost", "port": "19530"}
             )
-            
             insert_time = time.time() - start_time
-            
-            # 測試查詢性能
+
             query = "test document about topic 5"
             start_time = time.time()
             results = vectorstore.similarity_search(query, k=5)
             query_time = time.time() - start_time
-            
-            # 計算記憶體使用
+
             import psutil
             memory_usage = psutil.Process().memory_info().rss / 1024 / 1024
-            
+
             return VectorStoreMetrics(
                 name="Milvus",
                 insert_time=insert_time,
@@ -230,44 +203,27 @@ class VectorStoreEvaluator:
             logger.error(f"Milvus 評估失敗: {str(e)}")
             raise
 
-    def evaluate_pinecone(self, texts: List[str]) -> VectorStoreMetrics:
+    def evaluate_pinecone(self, documents: List[Document]) -> VectorStoreMetrics:
         """評估 Pinecone"""
         try:
-            # 初始化 Pinecone
-            pinecone.init(
-                api_key=os.getenv("PINECONE_API_KEY"),
-                environment=os.getenv("PINECONE_ENV")
-            )
-            
+            pinecone.init(api_key=os.getenv("PINECONE_API_KEY"), environment=os.getenv("PINECONE_ENV"))
             start_time = time.time()
             index_name = "langchain-demo"
-            
-            # 創建索引（如果不存在）
+
             if index_name not in pinecone.list_indexes():
-                pinecone.create_index(
-                    name=index_name,
-                    metric="cosine",
-                    dimension=1536  # OpenAI embedding 維度
-                )
-            
-            vectorstore = Pinecone.from_texts(
-                texts=texts,
-                embedding=self.embeddings,
-                index_name=index_name
-            )
-            
+                pinecone.create_index(name=index_name, metric="cosine", dimension=1536)
+
+            vectorstore = Pinecone.from_documents(documents=documents, embedding=self.embeddings, index_name=index_name)
             insert_time = time.time() - start_time
-            
-            # 測試查詢性能
+
             query = "test document about topic 5"
             start_time = time.time()
             results = vectorstore.similarity_search(query, k=5)
             query_time = time.time() - start_time
-            
-            # 計算記憶體使用
+
             import psutil
             memory_usage = psutil.Process().memory_info().rss / 1024 / 1024
-            
+
             return VectorStoreMetrics(
                 name="Pinecone",
                 insert_time=insert_time,
@@ -283,7 +239,7 @@ class VectorStoreEvaluator:
             logger.error(f"Pinecone 評估失敗: {str(e)}")
             raise
 
-    def run_evaluation(self, n_samples: int = 1000):
+    def run_evaluation(self, n_samples: int = 20):
         """執行評估"""
         documents = self.prepare_test_data(n_samples)
         
@@ -294,53 +250,21 @@ class VectorStoreEvaluator:
             # self.evaluate_milvus(texts),
             # self.evaluate_pinecone(texts)
         ]
-        
-        # 轉換為 DataFrame
-        df = pd.DataFrame([
-            {
-                "向量資料庫": e.name,
-                "插入時間 (秒)": round(e.insert_time, 3),
-                "查詢時間 (秒)": round(e.query_time, 3),
-                "記憶體使用 (MB)": round(e.memory_usage, 2),
-                "準確度": e.accuracy,
-                "設置複雜度": e.setup_complexity,
-                "維護成本": e.maintenance_cost,
-                "擴展性": e.scalability,
-                "雲端託管": "是" if e.cloud_hosted else "否"
-            }
-            for e in evaluations
-        ])
-        
-        # 設定顯示格式
-        pd.set_option('display.max_columns', None)
-        pd.set_option('display.width', None)
-        
-        print("\n=== 向量資料庫比較結果 ===")
-        print(f"測試時間: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
-        print(f"測試數據量: {n_samples} 筆")
-        print("\n" + str(df))
-        
-        # 輸出建議
-        print("\n=== 使用建議 ===")
-        print("1. 小型專案建議使用 Chroma：設置簡單，維護成本低")
-        print("2. 中型專案建議使用 FAISS：性能優良，無需額外服務")
-        print("3. 大型專案建議使用 Milvus/Pinecone：擴展性好，支援分散式部署")
-        
+
+        df = pd.DataFrame([vars(e) for e in evaluations])
+        print(df)
         return df
 
 def main():
     """主程式"""
-    print("=== LangChain 0.3+ 向量資料庫比較 ===\n")
-    
+    print("=== LangChain 向量資料庫比較 ===\n")
     if not os.getenv("OPENAI_API_KEY"):
         logger.error("請先設定 OPENAI_API_KEY 環境變數！")
         return
     
-    try:
-        evaluator = VectorStoreEvaluator()
-        evaluator.run_evaluation(n_samples=1000)
-    except Exception as e:
-        logger.error(f"評估過程發生錯誤: {str(e)}")
+    evaluator = VectorStoreEvaluator()
+    return evaluator.run_evaluation(n_samples=20)
 
 if __name__ == "__main__":
-    main() 
+    result = main()
+
