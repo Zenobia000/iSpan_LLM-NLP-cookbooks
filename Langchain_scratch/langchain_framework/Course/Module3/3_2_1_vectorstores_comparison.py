@@ -32,6 +32,9 @@ from langchain_community.vectorstores import (
 )
 from langchain_openai import OpenAIEmbeddings
 import pinecone
+from chromadb.config import Settings
+from langchain_core.documents import Document
+
 
 # 設定日誌
 logging.basicConfig(
@@ -62,31 +65,48 @@ class VectorStoreEvaluator:
         self.embeddings = OpenAIEmbeddings()
         self.metrics: List[VectorStoreMetrics] = []
         
-    def prepare_test_data(self, n_samples: int = 1000) -> List[str]:
+    def prepare_test_data(self, n_samples: int = 20) -> List[Document]:
         """準備測試數據"""
-        # 生成測試文本
-        texts = [
-            f"This is test document {i} containing specific information about topic {i%10}"
-            for i in range(n_samples)
-        ]
-        return texts
+        # 生成測試文本和元數據
+        documents = []
+        for i in range(n_samples):
+            documents.append(
+                Document(
+                    page_content=f"This is test document {i} containing specific information about topic {i%10}",
+                    metadata={
+                        "id": i,
+                        "topic": i % 10,
+                        "source": "test",
+                        "length": 50 + i
+                    }
+                )
+            )
+        return documents
 
-    def evaluate_chroma(self, texts: List[str]) -> VectorStoreMetrics:
+    def evaluate_chroma(self, documents: List[Document]) -> VectorStoreMetrics:
         """評估 Chroma"""
         try:
             start_time = time.time()
             
             # 建立向量存儲目錄
-            # persist_directory = os.path.join("vectorstore", "chroma_store")
-            # os.makedirs(persist_directory, exist_ok=True)
+            persist_directory = os.path.join("vectorstore", "chroma_store")
+            os.makedirs(persist_directory, exist_ok=True)
+            
+            # 設定 Chroma 客戶端
+            client_settings = Settings(
+                anonymized_telemetry=False,
+                is_persistent=True,
+                persist_directory=persist_directory
+            )
             
             embeddings = OpenAIEmbeddings()
             
-            vectorstore = Chroma.from_texts(
-                texts=texts,
+            vectorstore = Chroma.from_documents(
+                documents=documents,
                 embedding=embeddings,
                 collection_name="chroma_store",
-                # persist_directory=persist_directory
+                persist_directory=persist_directory,
+                client_settings=client_settings
             )
             
             insert_time = time.time() - start_time
@@ -94,13 +114,26 @@ class VectorStoreEvaluator:
             # 測試查詢性能
             query = "test document about topic 5"
             start_time = time.time()
-            results = vectorstore.similarity_search(query, k=5)
+            results = vectorstore.similarity_search(query, k=5)  # 使用基本搜尋
             query_time = time.time() - start_time
             
-            print(results)
+            # 輸出詳細結果
+            logger.info(f"\n查詢結果:")
+            for doc in results:
+                logger.info(f"內容: {doc.page_content}")
+                logger.info(f"元數據: {doc.metadata}\n")
+            
             # 計算記憶體使用
             import psutil
             memory_usage = psutil.Process().memory_info().rss / 1024 / 1024  # MB
+            
+            # 清理資料庫文件
+            try:
+                import shutil
+                shutil.rmtree(persist_directory)
+                logger.info(f"已清理 Chroma 資料庫: {persist_directory}")
+            except Exception as e:
+                logger.warning(f"清理 Chroma 資料庫時發生錯誤: {str(e)}")
             
             return VectorStoreMetrics(
                 name="Chroma",
@@ -108,7 +141,7 @@ class VectorStoreEvaluator:
                 query_time=query_time,
                 memory_usage=memory_usage,
                 accuracy=0.95,  # 基於實際測試調整
-                setup_complexity=1,  # 最簡單
+                setup_complexity=1,
                 maintenance_cost=1,
                 scalability=3,
                 cloud_hosted=False
@@ -252,11 +285,11 @@ class VectorStoreEvaluator:
 
     def run_evaluation(self, n_samples: int = 1000):
         """執行評估"""
-        texts = self.prepare_test_data(n_samples)
+        documents = self.prepare_test_data(n_samples)
         
         # 評估各個向量資料庫
         evaluations = [
-            self.evaluate_chroma(texts),
+            self.evaluate_chroma(documents),
             # self.evaluate_faiss(texts),
             # self.evaluate_milvus(texts),
             # self.evaluate_pinecone(texts)

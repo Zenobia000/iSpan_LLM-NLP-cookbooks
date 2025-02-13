@@ -201,6 +201,9 @@ Course/
 - 需要確保存儲目錄存在
 - 使用 os.makedirs 建立目錄結構
 - 使用 exist_ok=True 避免目錄已存在的錯誤
+- 新版需要明確設定 client_settings
+- 建議關閉匿名遙測功能
+- 測試完成後清理資料庫文件
 
 # 文件載入器經驗
 - 文件載入器應從 langchain_community.document_loaders 導入
