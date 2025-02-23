@@ -12,6 +12,7 @@ LangChain 自定義模型範例 - 模板
 
 from typing import Any, Dict, List, Optional
 from abc import ABC, abstractmethod
+from cohere import Document
 from pydantic import BaseModel, Field
 
 from langchain_core.language_models.base import BaseLanguageModel

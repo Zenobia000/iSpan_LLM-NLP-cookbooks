@@ -1,287 +1,206 @@
-"""
-LangChain 自定義模型範例 - 實作
-
-本模組實現了一個技術文檔查詢的 RAG Agent，整合了：
-1. Claude 作為基礎 LLM
-2. OpenAI Ada 002 作為 Embedding 模型
-3. 自定義的文檔檢索器
-4. 自定義的文檔處理工具
-5. 自定義的 Agent 決策邏輯
-"""
-
 import os
 import logging
-from typing import (
-    Any, Dict, List, Optional, Tuple, 
-    Union, Annotated, Type
-)
-from pathlib import Path
-import json
-import time
+from typing import List
+import PyPDF2
+import faiss
+import numpy as np
+from markdownify import markdownify as mdify
 from dotenv import load_dotenv
+from pydantic import BaseModel
+from sentence_transformers import SentenceTransformer
 
+# LangChain 0.3+ Imports
+from langchain_openai import ChatOpenAI, OpenAIEmbeddings
 from langchain_anthropic import ChatAnthropic
-from langchain_openai import OpenAIEmbeddings
-from langchain_community.vectorstores import Chroma
-from langchain_core.documents import Document
-from langchain_core.tools import BaseTool
-from langchain_core.agents import AgentAction, AgentFinish
-from langchain_core.prompts import PromptTemplate
-from langchain_core.output_parsers import PydanticOutputParser
-from pydantic import BaseModel, Field
+from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
+from langchain_core.retrievers import BaseRetriever
+from langchain.tools import Tool
+from langchain.agents import AgentExecutor, create_openai_tools_agent
 
 # 載入環境變數
 load_dotenv()
 
-# 檢查必要的環境變數
-required_env_vars = [
-    'OPENAI_API_KEY',
-    'ANTHROPIC_API_KEY'
-]
-
-missing_vars = [var for var in required_env_vars if not os.getenv(var)]
-if missing_vars:
-    raise EnvironmentError(
-        f"缺少必要的環境變數: {', '.join(missing_vars)}\n"
-        f"請確保 .env 文件中包含這些變數"
-    )
-
 # 設定日誌
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 logger = logging.getLogger(__name__)
 
-class TechDocsLLM(ChatAnthropic):
-    """技術文檔 LLM"""
-    
-    def __init__(self):
-        super().__init__(
-            model="claude-3-5-sonnet-20241022",
-            temperature=0.2,
-            max_tokens=2000,
-            anthropic_api_key=os.getenv('ANTHROPIC_API_KEY')
-        )
-    
-    @property
-    def _llm_type(self) -> str:
-        return "tech_docs_llm"
 
-class TechDocsEmbedding(OpenAIEmbeddings):
-    """技術文檔 Embedding"""
-    
-    def __init__(self):
-        super().__init__(
-            model="text-embedding-3-small",
-            chunk_size=1000,
-            openai_api_key=os.getenv('OPENAI_API_KEY')
+# ---------------------------------------------------------------------------------------
+# Document 結構
+# ---------------------------------------------------------------------------------------
+class Document(BaseModel):
+    text: str
+    id: str = ""
+
+# ---------------------------------------------------------------------------------------
+# 1. FAISS Retriever
+# ---------------------------------------------------------------------------------------
+class FAISSRetriever(BaseRetriever):
+    """FAISS 向量檢索"""
+    embeddings: OpenAIEmbeddings
+    texts: List[str]
+    top_k: int
+    index: faiss.IndexFlatL2
+
+    @classmethod
+    def from_chunks(cls, embeddings: OpenAIEmbeddings, chunks: List[str], top_k: int = 3):
+
+        """透過 @classmethod 建立 FAISS 索引"""
+        logger.info("初始化 FAISS 檢索索引...")
+        vector_dim = len(embeddings.embed_query("test"))  # 確保維度一致
+        index = faiss.IndexFlatL2(vector_dim)
+        vectors = np.array(embeddings.embed_documents(chunks), dtype="float32")
+        index.add(vectors)
+
+        return cls(
+            embeddings=embeddings,
+            texts=chunks,
+            top_k=top_k,
+            index=index
         )
 
-class TechDocsRetriever:
-    """技術文檔檢索器"""
+    def _get_relevant_documents(self, query: str) -> List[Document]:
+        """根據查詢檢索最相關的文檔"""
+        query_vec = np.array([self.embeddings.embed_query(query)], dtype="float32")
+        _, indices = self.index.search(query_vec, self.top_k)
+        for idx in indices[0]:
+            print(Document(text=self.texts[idx], id=f"chunk_{idx}"))
+
+        return [Document(text=self.texts[idx], id=f"chunk_{idx}") for idx in indices[0]]
+
+# ---------------------------------------------------------------------------------------
+# 2. PDF -> Markdown -> chunk
+# ---------------------------------------------------------------------------------------
+def pdf_to_markdown_chunks(pdf_path: str, chunk_size: int = 500, overlap: int = 50) -> List[str]:
+    if not os.path.isfile(pdf_path):
+        raise FileNotFoundError(f"找不到檔案: {pdf_path}")
+
+    chunks = []
+    with open(pdf_path, "rb") as f:
+        reader = PyPDF2.PdfReader(f)
+        for i, page in enumerate(reader.pages, 1):
+            text = mdify(page.extract_text() or "")
+            chunks += [text[i:i + chunk_size] for i in range(0, len(text), chunk_size - overlap)]
+            print(f"page: {i}")
+            print(f"chunks: {[text[i:i + chunk_size] for i in range(0, len(text), chunk_size - overlap)]}")
+            print("--------------------------------")
+    return chunks
+
+# ---------------------------------------------------------------------------------------
+# 3. Chat Prompt Template (包含 agent_scratchpad)
+# ---------------------------------------------------------------------------------------
+def get_prompt_template():
+    """建立基礎的 ChatPromptTemplate"""
+    return ChatPromptTemplate.from_messages([
+        ("system", "You are a helpful assistant. When you need to answer questions about specific documents or content, use the retriever_tool to get relevant information first."),
+        MessagesPlaceholder(variable_name="chat_history", optional=True),
+        ("human", "{question}"),
+        MessagesPlaceholder(variable_name="agent_scratchpad", optional=True),
+    ])
+
+# ---------------------------------------------------------------------------------------
+# 4. 選擇 LLM
+# ---------------------------------------------------------------------------------------
+def get_llm(provider: str = "openai"):
+    """選擇 LLM：支援 OpenAI / Anthropic Claude"""
+    if provider == "openai":
+        return ChatOpenAI(model="gpt-4", temperature=0.7)
+    elif provider == "anthropic":
+        return ChatAnthropic(model="claude-3-5-sonnet-20240620", temperature=0.7)
+    else:
+        raise ValueError("目前僅支援 OpenAI 或 Anthropic")
+
+
+# ---------------------------------------------------------------------------------------
+# 5. 建立 AgentExecutor (確保傳遞 question & context)
+# ---------------------------------------------------------------------------------------
+def create_agent(llm: ChatOpenAI | ChatAnthropic, retriever: FAISSRetriever):
+    """
+    建立 AgentExecutor：
+    - 支援 OpenAI 和 Claude 的工具調用
+    - 根據 LLM 類型自動選擇合適的工具格式
+    """
     
-    def __init__(self, docs_dir: Path, embeddings: OpenAIEmbeddings):
-        self.docs_dir = docs_dir
-        self.embeddings = embeddings
-        self.persist_dir = self.docs_dir / "vectorstore"
-        self.persist_dir.mkdir(exist_ok=True)
+    def query_function(input_text: str) -> str:
+        """RAG tool: 檢索相關文檔並生成回答"""
+        docs = retriever._get_relevant_documents(input_text)
+        context = "\n\n".join([doc.text for doc in docs])
         
-        # 設定 Chroma 客戶端
-        import chromadb
-        self.client_settings = chromadb.config.Settings(
-            anonymized_telemetry=False,
-            is_persistent=True,
-            persist_directory=str(self.persist_dir)
+        rag_prompt = ChatPromptTemplate.from_messages([
+            ("system", "Answer the question based on the following context. If the context doesn't contain relevant information, please answer with 'I don't know'"),
+            ("system", "Context: {context}"),
+            ("human", "{question}")
+        ])
+        
+        formatted_prompt = rag_prompt.format(
+            context=context,
+            question=input_text
         )
         
-        try:
-            self.vectorstore = self._init_vectorstore()
-        except Exception as e:
-            logger.error(f"初始化向量資料庫時發生錯誤: {str(e)}")
-            raise
+        return llm.invoke(formatted_prompt)
+
+    # 根據 LLM 類型配置工具
+    tool_config = {
+        "name": "retriever",
+        "func": query_function,
+        "description": "Use this tool to search and get information from documents. Input should be a specific question.",
+        "return_direct": True
+    }
+
+    # 如果是 Claude，添加特殊配置
+    if isinstance(llm, ChatAnthropic):
+        tool_config.update({
+            "args_schema": {
+                "type": "custom",
+                "input": "string",
+                "description": "The question to search for in the documents"
+            }
+        })
     
-    def _init_vectorstore(self) -> Chroma:
-        """初始化向量資料庫"""
-        try:
-            # 載入所有文檔
-            docs = self._load_docs()
-            if not docs:
-                raise ValueError("沒有找到可用的文檔")
-            
-            # 建立向量資料庫
-            return Chroma.from_documents(
-                documents=docs,
-                embedding=self.embeddings,
-                client_settings=self.client_settings
-            )
-        except Exception as e:
-            logger.error(f"建立向量資料庫時發生錯誤: {str(e)}")
-            raise
-    
-    def _load_docs(self) -> List[Document]:
-        """載入文檔"""
-        docs = []
-        for file_path in self.docs_dir.glob("**/*.*"):
-            if file_path.suffix in ['.txt', '.md', '.json']:
-                with open(file_path, 'r', encoding='utf-8') as f:
-                    content = f.read()
-                    docs.append(Document(
-                        page_content=content,
-                        metadata={"source": str(file_path)}
-                    ))
-        return docs
-    
-    def get_relevant_documents(self, query: str) -> List[Document]:
-        """檢索相關文檔"""
-        return self.vectorstore.similarity_search(query, k=1)
+    # 建立 Tool
+    retriever_tool = Tool(**tool_config)
 
-class ToolInput(BaseModel):
-    """工具輸入模型"""
-    query: str = Field(..., description="查詢內容")
 
-class ToolOutput(BaseModel):
-    """工具輸出模型"""
-    result: str = Field(..., description="處理結果")
-    metadata: Dict[str, Any] = Field(default_factory=dict, description="額外元數據")
+    # Claude 特殊處理
+    agent = create_openai_tools_agent(
+        llm=llm,
+        tools=[retriever_tool],
+        prompt=get_prompt_template()
+    )
 
-class DocProcessTool(BaseTool):
-    """文檔處理工具"""
-    name: str = "doc_processor"
-    description: str = "處理和分析技術文檔的工具"
-    args_schema: Optional[Type[BaseModel]] = ToolInput
-    
-    def _run(self, query: str) -> str:
-        """執行文檔處理"""
-        # 實現文檔處理邏輯
-        result = ToolOutput(
-            result=f"已處理查詢: {query}",
-            metadata={"timestamp": time.time()}
-        )
-        return result.result
-    
-    async def _arun(self, query: str) -> str:
-        """非同步執行"""
-        return self._run(query)
 
-class QueryResult(BaseModel):
-    """查詢結果模型"""
-    answer: str = Field(description="回答內容")
-    sources: List[str] = Field(description="使用的資料來源")
-    confidence: float = Field(description="答案的置信度", ge=0, le=1)
+    return AgentExecutor(agent=agent, tools=[retriever_tool], verbose=True)
 
-class TechDocsAgent:
-    """技術文檔 Agent"""
-    
-    def __init__(
-        self,
-        llm: TechDocsLLM,
-        retriever: TechDocsRetriever,
-        tools: List[BaseTool]
-    ):
-        self.llm = llm
-        self.retriever = retriever
-        self.tools = tools
-        self.output_parser = PydanticOutputParser(pydantic_object=QueryResult)
-        
-        # 修改提示模板，使其更明確
-        self.prompt_template = PromptTemplate(
-            template="""基於以下文檔回答問題。如果無法找到答案，請說明原因。
-
-文檔內容：
-{context}
-
-問題：{query}
-
-請使用以下 JSON 格式回答，確保回答符合 JSON 格式：
-{{
-    "answer": "你的詳細回答",
-    "sources": [],  # 來源將由系統自動填充
-    "confidence": 0.8  # 請根據回答的確定性給出 0-1 之間的置信度
-}}
-
-回答：""",
-            input_variables=["context", "query"]
-        )
-    
-    def run(self, query: str) -> QueryResult:
-        """執行查詢"""
-        try:
-            # 1. 檢索相關文檔
-            docs = self.retriever.get_relevant_documents(query)
-            
-            # 2. 準備上下文
-            context = "\n\n".join(doc.page_content for doc in docs)
-            
-            # 3. 生成提示
-            prompt = self.prompt_template.format(
-                context=context,
-                query=query
-            )
-            
-            # 4. 呼叫 LLM
-            response = self.llm.invoke(prompt)
-            
-            # 5. 解析結果
-            try:
-                # 從 AIMessage 中提取內容
-                response_text = response.content if hasattr(response, 'content') else str(response)
-                result = self.output_parser.parse(response_text)
-                result.sources = [doc.metadata["source"] for doc in docs]
-                return result
-            except Exception as e:
-                logger.error(f"解析結果時發生錯誤: {str(e)}")
-                logger.debug(f"原始回應: {response_text}")
-                return QueryResult(
-                    answer="無法解析回答",
-                    sources=[doc.metadata["source"] for doc in docs],
-                    confidence=0.0
-                )
-                
-        except Exception as e:
-            logger.error(f"查詢處理過程發生錯誤: {str(e)}")
-            return QueryResult(
-                answer=f"處理查詢時發生錯誤: {str(e)}",
-                sources=[],
-                confidence=0.0
-            )
-
+# ---------------------------------------------------------------------------------------
+# 6. 主程式
+# ---------------------------------------------------------------------------------------
 def main():
-    """主程序"""
-    try:
-        # 初始化組件
-        llm = TechDocsLLM()
-        embeddings = TechDocsEmbedding()
-        retriever = TechDocsRetriever(
-            docs_dir=Path(__file__).parent / "samples",
-            embeddings=embeddings
-        )
-        tools = [DocProcessTool()]
-        
-        # 建立 Agent
-        agent = TechDocsAgent(
-            llm=llm,
-            retriever=retriever,
-            tools=tools
-        )
-        
-        # 測試查詢
-        queries = [
-            "LangChain 的核心組件有哪些？",  # 從 langchain_tutorial.md 可以回答
-            "目前最準確的 AI 模型是哪個？",  # 從 model_comparison.csv 可以回答
-            "台積電在日本的最新發展是什麼？",  # 從 tech_news.txt 可以回答
-            "開發 AI 應用需要哪些基礎要求？",  # 從 dev_guide.html 可以回答
-            "人工智能目前面臨哪些主要挑戰？"  # 從 ai_introduction.txt 可以回答
-        ]
-        
-        # 執行查詢並輸出結果
-        for query in queries:
-            logger.info(f"\n=== 處理查詢: {query} ===")
-            result = agent.run(query)
-            logger.info(f"答案: {result.answer}")
-            logger.info(f"來源: {result.sources}")
-            logger.info(f"置信度: {result.confidence}")
-        
-    except Exception as e:
-        logger.error(f"執行過程發生錯誤: {str(e)}")
-        raise
+    """完整 RAG 工作流程，確保 retriever 融入查詢。"""
+    pdf_path = r"D:\python_workspace\github\iSpan_LLM-NLP-cookbooks\Langchain_scratch\langchain_framework\Course\Module3\samples\AI模型產業分析.pdf"
+
+    # 1. 讀取 PDF 並轉為 Markdown chunks
+    chunks = pdf_to_markdown_chunks(pdf_path, chunk_size=500, overlap=50)
+
+    # 2. 建立 OpenAI Embeddings
+    embeddings = OpenAIEmbeddings()
+
+    # 3. 透過 from_chunks() 創建 FAISS 檢索器
+    retriever = FAISSRetriever.from_chunks(embeddings, chunks, top_k=3)
+
+    # 4. 選擇 LLM (可以是 OpenAI 或 Anthropic)
+    llm = get_llm(provider="openai")  # 或 "anthropic"
+
+    # 5. 創建 AgentExecutor
+    agent_executor = create_agent(llm, retriever)
+
+    # 6. 測試查詢
+    query = "数据标注⾏业的⾓⾊与全球格局？"
+    response = agent_executor.invoke({"question": query, "agent_scratchpad": "", "chat_history": [], "context": ""})
+
+    # 7. 輸出結果
+    print("\n=== 查詢結果 ===")
+    print(response)
+
 
 if __name__ == "__main__":
-    main() 
+    main()
