@@ -39,4 +39,3 @@ class CustomTasks:
             expected_output="The expected output of the task",
             agent=agent,
         )
-
