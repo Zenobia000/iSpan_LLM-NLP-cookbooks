@@ -52,271 +52,266 @@ class TripPlannerTasks:
     def __tip_section(self):
         return "If you do your BEST WORK, I'll give you a $10,000 commission!"
     
-    def coordinate_planning(self, agent, destination_type, budget, duration, interests):
-        """管理者的協調任務"""
+    def coordinate_planning(self, agent, destination, itinerary, insights, optimization, budget, duration, currency="USD"):
+        """最終計劃協調與整合任務"""
+        # 根據幣值選擇顯示適當的符號
+        currency_symbol = "NT$" if currency == "TWD" else "$"
+        
         return Task(
-            description=dedent(
-                f"""
-                **Task**: Coordinate the entire travel planning process
-                **Description**: As the Trip Planning Manager, you need to coordinate the planning process and ensure all aspects
-                of the trip are properly covered. You should:
+            description=dedent(f"""
+                作為旅行規劃管理專家，您需要協調各個專家提供的信息，並創建最終的旅行計劃文檔。
                 
-                1. Review the initial requirements:
-                   - Destination Type: {destination_type}
-                   - Budget: ${budget}
-                   - Duration: {duration} days
-                   - Interests: {interests}
+                ## 輸入信息
+                - 目的地選擇與分析: {destination}
+                - 初步行程規劃: {itinerary}
+                - 當地體驗與洞察: {insights}
+                - 優化建議: {optimization}
+                - 預算: {currency_symbol}{budget} {currency}
+                - 行程天數: {duration}天
                 
-                2. Delegate and oversee the following tasks:
-                   - Destination selection to the City Selection Expert
-                   - Itinerary creation to the Expert Travel Agent
-                   - Local insights collection to the Local Tour Guide
+                ## 輸出要求
+                請整合上述所有信息，創建一份全面、連貫且實用的旅行計劃文檔。最終文檔必須使用繁體中文呈現，包括所有標題、小標題和內容。
                 
-                3. Ensure integration and consistency:
-                   - Verify that all components work together
-                   - Check that budget constraints are respected
-                   - Validate that traveler interests are addressed
-                   - Maintain quality throughout the plan
+                文檔應包含：
+                1. 行程摘要與亮點（全繁體中文）
+                2. 目的地概述與實用信息（全繁體中文）
+                3. 詳細的日程安排（全繁體中文）
+                4. 預算細分與消費指南（全繁體中文）
+                5. 實用提示與資源（全繁體中文）
+                6. 備選方案與靈活性建議（全繁體中文）
                 
-                4. Provide final recommendations and adjustments
-                
-                Use the blackboard system to:
-                - Monitor progress of each task
-                - Share information between agents
-                - Track changes and versions
-                - Ensure data consistency
-                
-                {self.__tip_section()}
-                """
-            ),
-            expected_output="A comprehensive travel plan with all components properly integrated",
-            agent=agent
+                請確保內容實用、具體且有指導性，幫助旅行者輕鬆執行這個計劃。
+                **重要提示：整個文檔必須完全使用繁體中文，不得使用任何英文標題或內容。**
+            """),
+            agent=agent,
+            expected_output="一份全面且實用的旅行計劃文檔，完全使用繁體中文呈現，包含所有必要細節和建議。"
         )
 
-    def select_destination(self, agent, destination_type, budget, duration):
+    def select_destination(self, agent, destination_type, budget, duration, requirements_analysis, currency="USD"):
         """目的地選擇任務"""
+        # 根據幣值選擇顯示適當的符號
+        currency_symbol = "NT$" if currency == "TWD" else "$"
+        
         return Task(
             description=dedent(
                 f"""
-                **Task**: Analyze and select the best travel destinations
-                **Description**: Based on the traveler's preferences, budget constraints, and time frame, analyze and recommend the 
-                optimal travel destinations. Your analysis should consider factors such as seasonal conditions, tourist attractions, 
-                safety, and how well the destination matches the traveler's interests.
+                **Task**: 分析並選擇最佳旅行目的地
+                **Description**: 基於旅行者的偏好、預算限制和時間框架，分析並推薦最佳的旅行目的地。您的分析應考慮季節性條件、旅遊景點、安全因素，以及目的地與旅行者興趣的匹配度。
                 
-                Please provide:
-                1. A ranked list of 3-5 recommended destinations that match the criteria
-                2. For each destination, include:
-                   - Brief overview and why it's suitable for this trip
-                   - Best areas/neighborhoods to stay
-                   - Must-see attractions and activities
-                   - Estimated costs for accommodations, food, and activities
-                   - Best time to visit and current seasonal conditions
+                需求分析報告：
+                ```
+                {requirements_analysis}
+                ```
                 
-                **Parameters**:
-                - Destination Type: {destination_type} (e.g., beach, city, mountains, cultural)
-                - Budget: ${budget} for the entire trip
-                - Duration: {duration} days
+                請提供：
+                1. 3-5個符合條件的推薦目的地排名清單
+                2. 每個目的地包含：
+                   - 簡要概述及其適合此次旅行的原因
+                   - 最佳住宿區域/社區
+                   - 必看景點和活動
+                   - 住宿、餐飲和活動的估計成本 (以{currency}為單位)
+                   - 最佳旅行時間和當前季節性條件
+                   - 安全考量和特殊提示
+                3. 最終目的地建議及選擇理由
+                
+                **參數**:
+                - 目的地類型: {destination_type}
+                - 預算: {currency_symbol}{budget} {currency}
+                - 行程天數: {duration}天
+                
+                確保使用最新的數據並考慮當前旅行條件。您的推薦應詳細、具體且貼合需求分析結果。
+                若選擇的貨幣為TWD，請確保在預算考慮中適當換算。
                 
                 {self.__tip_section()}
-                
-                Make sure to use the most recent data possible and consider current travel conditions.
-                
-                Note: Write your findings to the blackboard for other agents to reference.
                 """
             ),
-            expected_output="A detailed report of recommended destinations with justifications and practical information",
+            expected_output="一份詳細的推薦目的地報告，包含目的地分析、比較和最終建議，提供充分的理由和實用信息",
             agent=agent
         )
     
-    def create_itinerary(self, agent, destination, duration, interests):
+    def create_itinerary(self, agent, destination, duration, interests, budget, currency="USD"):
         """行程規劃任務"""
+        # 根據幣值選擇顯示適當的符號
+        currency_symbol = "NT$" if currency == "TWD" else "$"
+        
         return Task(
             description=dedent(
                 f"""
-                **Task**: Develop a comprehensive day-by-day travel itinerary
-                **Description**: Create a detailed itinerary for a {duration}-day trip to {destination}, taking into account 
-                the traveler's interests and preferences. The itinerary should maximize the travel experience while remaining 
-                practical and avoiding an overly rushed schedule.
+                **Task**: 開發全面的逐日旅行行程
+                **Description**: 為{destination}的{duration}天行程創建詳細的行程安排，考慮旅行者的興趣和偏好。行程應最大化旅行體驗，同時保持實用性並避免過於緊湊的安排。
                 
-                Your itinerary should include:
-                1. A day-by-day schedule with morning, afternoon, and evening activities
-                2. Recommended accommodations for each night
-                3. Transportation options between sites and activities
-                4. Estimated timing for each activity, including travel time between locations
-                5. Meal recommendations (especially local specialties worth trying)
-                6. Backup activities or rainy-day alternatives
-                7. A packing list tailored to the destination and planned activities
-                8. Estimated budget breakdown for each day
+                您的行程應包括：
+                1. 逐日安排，包含上午、下午和晚上的活動
+                2. 每晚的住宿建議，包含價格範圍和特點
+                3. 景點間的交通選擇和方式
+                4. 每項活動的預計時間，包括景點間的交通時間
+                5. 餐飲建議（特別是值得嘗試的當地特色）
+                6. 備選活動或雨天備案
+                7. 根據目的地和計劃活動定制的打包清單
+                8. 每天的預算細分 (以{currency}為單位)
+                9. 住宿、交通、餐飲、活動、雜項的總體預算分配
                 
-                **Parameters**:
-                - Destination: {destination}
-                - Duration: {duration} days
-                - Interests: {interests} (e.g., history, food, adventure, relaxation)
+                **參數**:
+                - 目的地: {destination}
+                - 行程天數: {duration}天
+                - 興趣: {interests}
+                - 總預算: {currency_symbol}{budget} {currency}
+                
+                確保行程在旅行時間和活動時長方面是現實可行的。
+                平衡安排活動和自由時間。
+                考慮當地交通狀況和景點開放時間。
+                根據旅行者的興趣優先安排活動。
+                若使用TWD作為貨幣單位，請適當考慮匯率因素。
                 
                 {self.__tip_section()}
-                
-                Ensure the itinerary is realistic regarding travel times and activity durations.
-                Balance scheduled activities with free time.
-                
-                Note: Read destination details from the blackboard and write your itinerary for other agents to reference.
                 """
             ),
-            expected_output="A complete day-by-day itinerary with all requested details and practical considerations",
+            expected_output="一份完整的逐日行程，包含所有請求的細節和實用考量，並附有預算分配明細",
             agent=agent
         )
 
-    def provide_local_insights(self, agent, destination):
-        """本地見解任務"""
+    def provide_local_insights(self, agent, destination, itinerary, interests):
+        """本地體驗強化任務"""
         return Task(
             description=dedent(
                 f"""
-                **Task**: Provide insider knowledge and local recommendations
-                **Description**: As an experienced local guide, provide authentic insights and recommendations for travelers 
-                visiting {destination}. Go beyond typical tourist information to share hidden gems, local customs, and practical 
-                advice that will enhance the traveler's experience.
+                **Task**: 提供內部知識和當地推薦
+                **Description**: 作為經驗豐富的當地導遊，為前往{destination}的旅行者提供真實的見解和建議。超越典型的旅遊信息，分享隱藏寶藏、當地風俗和實用建議，以提升旅行者的體驗。
                 
-                Your insights should include:
-                1. Hidden gems and off-the-beaten-path attractions locals love
-                2. Cultural norms, etiquette, and local customs visitors should be aware of
-                3. Common tourist mistakes or scams to avoid
-                4. Authentic local dining recommendations at various price points
-                5. Practical tips for navigating public transportation
-                6. Useful local phrases or language tips
-                7. Best times of day to visit popular attractions to avoid crowds
-                8. Local festivals or events happening during the travel period
-                9. Safety tips specific to different neighborhoods
+                現有行程：
+                ```
+                {itinerary}
+                ```
                 
-                **Parameters**:
-                - Destination: {destination}
+                旅行者興趣：{interests}
+                
+                您的見解應包括：
+                1. 當地人喜愛的隱藏景點和非傳統景點
+                2. 遊客應該了解的文化規範、禮儀和當地習俗
+                3. 避免常見的遊客錯誤或騙局
+                4. 不同價位的正宗當地餐廳推薦
+                5. 使用公共交通的實用技巧
+                6. 有用的當地短語或語言提示
+                7. 避開人群的最佳時間參觀熱門景點
+                8. 旅行期間的當地節日或活動
+                9. 針對不同社區的安全提示
+                10. 根據旅行者興趣的特殊體驗或活動
+                11. 與現有行程互補的具體建議和增強點
                 
                 {self.__tip_section()}
                 
-                Focus on providing authentic, current information that can't easily be found in standard guidebooks or websites.
-                
-                Note: Read the existing itinerary from the blackboard and provide insights that complement the planned activities.
+                專注於提供真實、最新的信息，這些信息在標準旅遊指南或網站上不容易找到。您的建議應增強而不是取代現有行程，提供額外的深度和真實性。
                 """
             ),
-            expected_output="A comprehensive guide with insider knowledge, cultural insights, and practical local tips",
+            expected_output="一份詳盡的指南，包含內部知識、文化見解和針對現有行程的實用當地提示",
             agent=agent
         )
 
-    def optimize_plan(self, agent, initial_itinerary, initial_insights, budget, duration):
-        """最終行程優化任務"""
+    def optimize_plan(self, agent, initial_itinerary, initial_insights, budget, duration, currency="USD"):
+        """行程優化任務"""
+        # 根據幣值選擇顯示適當的符號
+        currency_symbol = "NT$" if currency == "TWD" else "$"
+        
         return Task(
             description=dedent(
                 f"""
-                **Task**: 優化並整合最終旅行計劃
-                **Description**: 作為旅行規劃經理，您需要與所有專家合作，全面審查和優化旅行計劃。
-                請確保計劃滿足所有要求並達到最佳效果。
-
-                需要審查和優化的內容：
-                1. 行程可行性審查
-                   - 檢查行程時間安排的合理性
-                   - 確認各景點/活動之間的交通時間
-                   - 評估天氣和季節性因素的影響
-                   - 標記任何潛在的衝突或不可行點
-                
-                2. 預算合理性評估
-                   - 總預算: ${budget}
-                   - 檢查所有費用項目（住宿、交通、餐飲、活動）
-                   - 確保有應急預算（建議為總預算的10-15%）
-                   - 建議可能的節省方案
-                   - 標記任何超出預算的項目
-                
-                3. 時間安排優化
-                   - 行程天數: {duration} 天
-                   - 優化景點遊覽順序
-                   - 合理安排休息時間
-                   - 預留彈性時間應對突發情況
-                   - 標記任何時間安排過密或不合理的部分
-                
-                4. 整體體驗提升
-                   - 結合當地特色活動
-                   - 平衡觀光與深度體驗
-                   - 添加特別推薦和替代方案
-                   - 標記任何可能影響體驗品質的因素
-                
-                5. 問題處理機制
-                   - 對於發現的每個問題：
-                     * 問題描述
-                     * 嚴重程度評估（高/中/低）
-                     * 建議的解決方案
-                     * 需要協調的專家（如果需要）
-                   - 提供備選方案或應急計劃
-                
-                6. 跨專家協調
-                   - 如發現問題需要：
-                     * City Expert 重新評估目的地選擇
-                     * Travel Expert 調整行程安排
-                     * Local Guide 提供替代建議
-                   - 確保各專家間的建議不衝突
+                **Task**: 優化並完善旅行計劃
+                **Description**: 作為質量控制專家，全面審查和優化旅行計劃。確保行程在時間安排、預算和整體體驗方面達到最佳效果。
                 
                 初始行程：
+                ```
                 {initial_itinerary}
+                ```
                 
                 當地見解：
+                ```
                 {initial_insights}
+                ```
+                
+                審查和優化重點：
+                
+                1. 實用性和可行性
+                   - 評估每日行程的實際可行性
+                   - 檢查行程點之間的交通時間是否合理
+                   - 確認開放時間和季節性限制
+                   - 識別並解決任何行程衝突或過度安排
+                
+                2. 預算優化
+                   - 總預算: {currency_symbol}{budget} {currency}
+                   - 評估預算分配的合理性
+                   - 提出優化建議以增加價值
+                   - 標記任何超出預算或不平衡的方面
+                   - 確保包含5-10%的緊急預算
+                
+                3. 體驗增強
+                   - 整合當地見解到主要行程中
+                   - 平衡熱門景點與獨特體驗
+                   - 確保行程節奏適宜（避免疲勞）
+                   - 加入"緩衝時間"以應對延誤或自發探索
+                
+                4. 風險管理
+                   - 識別潛在問題並提供解決方案
+                   - 提供備選方案（天氣、閉館等）
+                   - 包含安全提示和緊急聯繫信息
                 
                 請提供：
-                1. 優化後的詳細行程
-                2. 更新的當地建議
-                3. 優化總結報告，包含：
-                   - 主要改進點
-                   - 發現的問題及解決方案
-                   - 需要特別注意的事項
-                   - 建議的後續行動（如果需要）
+                1. 優化建議摘要
+                2. 具體的日程調整（如需要）
+                3. 預算優化建議 (以{currency}為單位)
+                4. 體驗增強建議
+                5. 實用提示和備選方案
+                
+                您的最終輸出應平衡實用性、預算考量和體驗質量，確保創造一個順暢且令人難忘的旅行計劃。
                 
                 {self.__tip_section()}
                 """
             ),
-            expected_output=dedent("""
-                {
-                    "itinerary": "優化後的詳細行程",
-                    "local_insights": "更新的當地建議",
-                    "optimization_summary": {
-                        "improvements": "主要改進點列表",
-                        "issues": {
-                            "critical": "需要立即處理的問題",
-                            "moderate": "需要注意的問題",
-                            "minor": "可以改進的小問題"
-                        },
-                        "solutions": "針對每個問題的解決方案",
-                        "next_steps": "建議的後續行動"
-                    }
-                }
-            """),
+            expected_output="一份全面的優化報告，包含具體調整建議、預算優化、體驗增強和風險管理策略",
             agent=agent
         )
 
     # 第一階段任務
-    def analyze_requirements(self, agent, destination_type, budget, duration, interests):
+    def analyze_requirements(self, agent, destination_type, budget, duration, interests, currency="USD"):
         """需求分析任務"""
         return Task(
             description=dedent(
                 f"""
-                **Task**: Analyze travel requirements and create initial framework
-                **Description**: As the Trip Planning Manager, analyze the requirements and create a structured framework for the trip.
+                **Task**: 全面分析旅行需求和限制條件
+                **Description**: 作為需求分析專家，您需要徹底分析旅行者的需求、限制條件和偏好，為後續規劃奠定基礎。
                 
-                Focus areas:
-                1. Requirements Analysis
-                   - Destination Type: {destination_type}
-                   - Budget: ${budget}
-                   - Duration: {duration} days
-                   - Interests: {interests}
+                您需要完成：
                 
-                2. Create Planning Framework
-                   - Define key milestones
-                   - Identify critical decision points
-                   - Outline resource allocation strategy
+                1. 需求細分與分析
+                   - 目的地類型分析：{destination_type} - 該類型目的地的典型特點、常見活動和體驗
+                   - 預算分析：{budget} - 預算適合度、如何最佳分配、預算限制下的優化建議
+                   - 時間框架分析：{duration}天 - 合理行程安排、活動密度建議、行程節奏規劃
+                   - 興趣偏好分析：{interests} - 如何將這些興趣與目的地類型和活動相匹配
                 
-                3. Risk Assessment
-                   - Identify potential challenges
-                   - Suggest mitigation strategies
+                2. 限制條件識別
+                   - 預算限制因素 (考慮選定的貨幣：{currency})
+                   - 時間限制因素
+                   - 季節性考量
+                   - 潛在的特殊需求
+                
+                3. 旅行者畫像構建
+                   - 根據提供的信息推斷旅行者類型（探險型、文化型、休閒型等）
+                   - 推斷旅行風格偏好（奢華、經濟、平衡等）
+                   - 推斷活動強度偏好（密集探索型、輕鬆休閒型等）
+                
+                4. 初步建議
+                   - 預算分配建議（住宿、交通、餐飲、活動等）
+                   - 時間分配建議
+                   - 目的地類型中的優先地區或國家
+                   - 根據興趣的重點活動類型
+                
+                若選擇的貨幣為TWD，請在分析中考慮其國際換算性和適用區域。
+                
+                請提供一份全面的分析報告，包括上述所有方面，以及您認為重要的任何其他考量。報告應當客觀、詳細、有洞察力，並為後續的目的地選擇和行程規劃提供明確指導。
                 
                 {self.__tip_section()}
                 """
             ),
-            expected_output="A structured analysis report with planning framework and risk assessment",
+            expected_output="一份全面詳細的旅行需求分析報告，包括需求解析、限制條件、旅行者畫像和初步建議",
             agent=agent
         )
 
@@ -346,7 +341,7 @@ class TripPlannerTasks:
                 
                 Parameters:
                 - Destination Type: {destination_type}
-                - Budget: ${budget}
+                - Budget: {budget}
                 - Duration: {duration} days
                 
                 {self.__tip_section()}
@@ -382,7 +377,7 @@ class TripPlannerTasks:
                 
                 Parameters:
                 - Destination Type: {destination_type}
-                - Budget: ${budget}
+                - Budget: {budget}
                 
                 {self.__tip_section()}
                 """
@@ -453,7 +448,7 @@ class TripPlannerTasks:
                    - Activity and attraction prices
                    - Food and entertainment expenses
                 
-                Budget: ${budget}
+                Budget: {budget}
                 
                 {self.__tip_section()}
                 """
@@ -628,12 +623,35 @@ class TripPlannerTasks:
                 
                 Parameters:
                 - Planned Activities: {planned_activities}
-                - Total Budget: ${budget}
+                - Total Budget: {budget}
                 
                 {self.__tip_section()}
                 """
             ),
             expected_output="A budget compliance report with optimization suggestions",
             agent=agent
+        )
+
+    def translate_final_plan(self, agent, plan_document):
+        """創建翻譯最終旅行計劃的任務"""
+        return Task(
+            description=dedent(f"""
+                您的任務是將以下旅行計劃文檔完整翻譯成繁體中文，包括所有標題、小標題和內容。
+                
+                ## 翻譯要求
+                1. 將所有英文或混合語言內容轉換為純繁體中文
+                2. 保持原文檔的結構和格式
+                3. 確保所有日期、價格、時間等信息的準確性
+                4. 使用台灣當地常用的旅遊術語和表達方式
+                5. 保持專有名詞的正確翻譯（如地名、景點名稱等）
+                
+                ## 待翻譯的原始文檔
+                {plan_document}
+                
+                ## 輸出格式
+                請提供一份完整的繁體中文旅行計劃文檔，保持原有的格式結構。
+            """),
+            agent=agent,
+            expected_output="一份完全使用繁體中文表達的旅行計劃文檔，保持原有的格式結構和內容完整性。"
         )
 

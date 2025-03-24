@@ -46,7 +46,7 @@ class TripPlannerAgents:
         """初始化旅行規劃代理系統"""
         # 設置語言模型
         self.OpenAIGPT35 = ChatOpenAI(model_name="gpt-3.5-turbo", temperature=0.7)
-        self.OpenAIGPT4 = ChatOpenAI(model_name="gpt-4", temperature=0.7)
+        self.OpenAIGPT4 = ChatOpenAI(model_name="gpt-4o", temperature=0.7)
         self.Ollama = OllamaLLM(model="openhermes")
         
         # 初始化工具註冊系統

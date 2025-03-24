@@ -113,4 +113,3 @@ class TripPlannerAgents:
             verbose=True,
             llm=self.OpenAIGPT35,
         )
-
