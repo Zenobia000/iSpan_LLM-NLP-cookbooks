@@ -225,16 +225,30 @@
 - 鏈式提示：`207-chaining-prompt.ipynb`
 
 **RAG 與檢索**：
+- 向量嵌入：`601--LLM-workshop-embedding.ipynb`
+- 基礎 RAG：`602-varnilla-RAG.ipynb`
 - 向量資料庫：`604-vector-db-RAG.ipynb`
+- 相似度與相關性：`605--LLM-workshop-similarity-and-relevance.ipynb`
+- 動態少樣本學習：`606--LLM-workshop-dynamic-few-shot.ipynb`
+- MedPrompt 進階擴展：`606-LLM-Medprompt_Extending.py`
+- MedPrompt 線性擴展：`606-LLM-Medprompt_Extending_Linear.py`
 - 進階 RAG：`607-advance-RAG.ipynb`
 - RAG 評估：`610-RAG-evaluation-ragas.ipynb`
-- PDF 解析：`612-ihower-LLM-workshop-pdf-parsing-v2.ipynb`
+- RAG 評估進階：`610__LLM_workshop_RAG_evaluation.ipynb`
+- PDF 解析：`612--LLM-workshop-pdf-parsing-v2.ipynb`
 
 **Agent 與 Function Calling**：
 - 基礎 Agent：`701-langchain-agents.ipynb`
 - Function Calling：`702-function-calling-basic.ipynb`
-- ReAct 框架：`711-ihower-LLM-workshop-react.ipynb`
-- Swarm 多智能體：`960-ihower-LLM-workshop-swarm.ipynb`
+- Agent 框架：`703-function-calling-agents.ipynb`
+- Function Calling RAG：`705-function-calling-rag.ipynb`
+- 資料抽取：`706-function-calling-extract.ipynb`
+- ReAct 框架：`711--LLM-workshop-react.ipynb`
+- 購物助手：`712-function-calling-shop.ipynb`
+- Assistants API：`720-assistants-api.ipynb`
+- Agent 深度搜索：`721--LLM-workshop-agent-deep-search.ipynb`
+- Swarm 多智能體：`960--LLM-workshop-swarm.ipynb`
+- OpenAI Agents SDK：`970--LLM-workshop-openai-agents-sdk.ipynb`
 
 **語音與微調**：
 - Whisper 語音轉文字：`501-whisper-summarization.ipynb`
