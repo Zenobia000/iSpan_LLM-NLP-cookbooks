@@ -35,7 +35,6 @@ Specialized Experts:
 # You can define as many agents as you want.
 # You can also define custom tasks in tasks.py
 
-
 class TripPlannerAgents:
     def __init__(self):
         """初始化旅行規劃代理系統"""
