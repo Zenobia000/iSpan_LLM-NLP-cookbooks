@@ -1,3 +1,29 @@
+## 最後更新
+
+**日期：** 2024-07-29
+
+**內容：**
+
+*   **新增**：
+    *   `606--LLM-workshop-dynamic-few-shot.ipynb`
+    *   `610--LLM_workshop_RAG_evaluation.ipynb`
+    *   `612--LLM-workshop-pdf-parsing-v2.ipynb`
+    *   `711--LLM-workshop-react.ipynb`
+    *   `960--LLM-workshop-swarm.ipynb`
+    *   `970--LLM-workshop-openai-agents-sdk.ipynb`
+    *   多個 PDF 檔案與其他輔助腳本。
+*   **更新**：
+    *   `702-function-calling-basic.ipynb`
+    *   `703-function-calling-agents.ipynb`
+    *   `705-function-calling-rag.ipynb`
+    *   `706-function-calling-extract.ipynb`
+    *   `720-assistants-api.ipynb`
+    *   `810-fine-tune-with-synthetic-data.ipynb`
+*   **刪除**：
+    *   `610-RAG-evaluation-ragas.ipynb`
+
+---
+
 # iSpan LLM-NLP 生成式 AI 系統化教學專案
 
 ## 🎯 專案概述
