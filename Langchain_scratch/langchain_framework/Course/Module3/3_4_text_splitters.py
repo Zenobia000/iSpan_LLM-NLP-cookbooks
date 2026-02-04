@@ -28,7 +28,7 @@ from bs4 import BeautifulSoup
 from abc import ABC, abstractmethod
 import re
 
-from langchain.text_splitter import (
+from langchain_text_splitters import (
     CharacterTextSplitter,
     TokenTextSplitter,
     RecursiveCharacterTextSplitter,

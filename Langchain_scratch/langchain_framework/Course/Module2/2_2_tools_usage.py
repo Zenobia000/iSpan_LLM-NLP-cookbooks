@@ -1,22 +1,20 @@
 """
-LangChain 0.3+ 工具使用教學
+LangChain v1.0+ 工具使用教學
 展示如何整合和使用各種實用工具，包含搜尋、計算、API 調用等
 
 需求套件:
-- langchain>=0.3.0
-- langchain-openai>=0.0.2
-- langchain-community>=0.0.1
-- python-dotenv>=0.19.0
+- langchain>=1.0.0
+- langchain-openai>=0.2.0
+- langchain-community>=0.3.0
+- python-dotenv>=1.0.0
 - wikipedia-api>=0.6.0
 - python-arxiv>=0.7.1
 - duckduckgo-search>=4.1.1
 """
 
+from langchain import create_agent
 from langchain_openai import ChatOpenAI
 from langchain.agents import tool
-from langchain.agents import create_openai_functions_agent
-from langchain.agents import AgentExecutor
-from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain_community.tools import WikipediaQueryRun
 from langchain_community.utilities import WikipediaAPIWrapper
 from langchain_community.tools import DuckDuckGoSearchRun
@@ -96,7 +94,7 @@ def create_agent_with_tools() -> AgentExecutor:
     建立具備多種工具的 Agent
     """
     # 建立 LLM
-    llm = ChatOpenAI(
+    model = ChatOpenAI(
         temperature=0,
         model="gpt-3.5-turbo"
     )
@@ -130,10 +128,7 @@ def create_agent_with_tools() -> AgentExecutor:
     # 建立工具列表
     tools = [calculator] + setup_search_tools()
 
-    # 建立 Agent
-    agent = create_openai_functions_agent(llm, tools, prompt)
-
-    # 建立 Agent 執行器
+# 建立 Agent 執行器
     agent_executor = AgentExecutor(
         agent=agent,
         tools=tools,
@@ -167,7 +162,7 @@ def demonstrate_tools_usage():
                 "input": question,
                 "chat_history": chat_history
             })
-            print(f"回答: {response['output']}")
+            print(f"回答: {response}")
 
             # 更新對話歷史
             chat_history.extend([
@@ -182,7 +177,7 @@ def main():
     """
     主程式：展示工具使用方式
     """
-    print("=== LangChain 0.3+ 工具使用展示 ===\n")
+    print("=== LangChain v1.0+ 工具使用展示 ===\n")
 
     if not os.getenv("OPENAI_API_KEY"):
         logger.error("請先設定 OPENAI_API_KEY 環境變數！")

@@ -1,20 +1,18 @@
 """
-LangChain 0.3+ Agent 自動化範例
+LangChain v1.0+ Agent 自動化範例
 展示如何建立自動化工作流程，包含資料處理、API 調用和結果輸出
 
 需求套件:
-- langchain>=0.3.0
-- langchain-openai>=0.0.2
+- langchain>=1.0.0
+- langchain-openai>=0.2.0
 - langchain-community>=0.0.1
 - python-dotenv>=0.19.0
 - pandas>=2.0.0
 """
 
+from langchain import create_agent
 from langchain_openai import ChatOpenAI
 from langchain.agents import tool
-from langchain.agents import create_openai_functions_agent
-from langchain.agents import AgentExecutor
-from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from typing import List, Dict, Any
 from pathlib import Path
 import pandas as pd
@@ -110,12 +108,12 @@ def generate_report(data: str, report_type: str) -> str:
         return f"報告生成失敗: {str(e)}"
 
 
-def create_automation_agent() -> AgentExecutor:
+def create_automation_agent():
     """
-    建立自動化處理的 Agent
+    使用 LangChain v1.0+ 新 API 建立自動化處理 Agent
     """
     # 建立 LLM
-    llm = ChatOpenAI(
+    model = ChatOpenAI(
         temperature=0,
         model="gpt-3.5-turbo"
     )
@@ -132,14 +130,6 @@ def create_automation_agent() -> AgentExecutor:
     回答時請使用繁體中文，並保持專業、友善的態度。
     """
 
-    # 建立提示詞模板
-    prompt = ChatPromptTemplate.from_messages([
-        ("system", system_prompt),
-        MessagesPlaceholder(variable_name="chat_history"),
-        ("human", "{input}"),
-        MessagesPlaceholder(variable_name="agent_scratchpad")
-    ])
-
     # 建立工具列表
     tools = [
         read_csv_data,
@@ -147,15 +137,14 @@ def create_automation_agent() -> AgentExecutor:
         generate_report
     ]
 
-    # 建立 Agent
-    agent = create_openai_functions_agent(llm, tools, prompt)
-
-    # 建立 Agent 執行器
-    return AgentExecutor(
-        agent=agent,
+    # 使用新的 create_agent API
+    agent = create_agent(
+        model=model,
         tools=tools,
-        verbose=True
+        system_prompt=system_prompt
     )
+
+    return agent
 
 
 def demonstrate_automation():
@@ -196,7 +185,7 @@ def demonstrate_automation():
                 "input": question,
                 "chat_history": chat_history
             })
-            print(f"結果: {response['output']}")
+            print(f"結果: {response}")
 
             # 更新對話歷史
             chat_history.extend([
@@ -211,7 +200,7 @@ def main():
     """
     主程式：展示 Agent 自動化流程
     """
-    print("=== LangChain 0.3+ Agent 自動化展示 ===\n")
+    print("=== LangChain v1.0+ Agent 自動化展示 ===\n")
 
     if not os.getenv("OPENAI_API_KEY"):
         logger.error("請先設定 OPENAI_API_KEY 環境變數！")

@@ -1,11 +1,11 @@
 """
-LangChain 0.3+ 框架概覽與核心概念
+LangChain v1.0+ 框架概覽與核心概念
 此範例展示 LangChain 的基本架構和核心組件
 
 需求套件:
-- langchain>=0.3.0
-- langchain-openai>=0.0.2
-- python-dotenv>=0.19.0
+- langchain>=1.0.0
+- langchain-openai>=0.2.0
+- python-dotenv>=1.0.0
 """
 
 from langchain_core.prompts import PromptTemplate

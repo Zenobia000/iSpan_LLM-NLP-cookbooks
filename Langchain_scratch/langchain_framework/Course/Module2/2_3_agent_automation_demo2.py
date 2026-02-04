@@ -1,21 +1,19 @@
 ﻿"""
-LangChain 0.3+ Agent 自動化範例
+LangChain v1.0+ Agent 自動化範例
 展示如何建立自動化工作流程，包含資料處理、API 調用和結果輸出
 
 需求套件:
-- langchain>=0.3.0
-- langchain-openai>=0.0.2
+- langchain>=1.0.0
+- langchain-openai>=0.2.0
 - langchain-community>=0.0.1
 - python-dotenv>=0.19.0
 - pydantic>=2.0.0
 """
 
+from langchain import create_agent
 from langchain_openai import ChatOpenAI
 from langchain.agents import tool
-from langchain.agents import create_openai_functions_agent
-from langchain.agents import AgentExecutor
-from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
-from langchain.output_parsers import PydanticOutputParser
+from langchain_core.output_parsers import PydanticOutputParser
 from pydantic import BaseModel, Field
 from typing import List, Dict, Any
 from dotenv import load_dotenv
@@ -87,7 +85,7 @@ def create_automation_agent() -> AgentExecutor:
     建立自動化 Agent
     """
     # 建立 LLM
-    llm = ChatOpenAI(
+    model = ChatOpenAI(
         temperature=0,
         model="gpt-3.5-turbo"
     )
@@ -139,10 +137,7 @@ def create_automation_agent() -> AgentExecutor:
         process_task
     ]
 
-    # 建立 Agent
-    agent = create_openai_functions_agent(llm, tools, prompt)
-
-    # 建立 Agent 執行器
+# 建立 Agent 執行器
     return AgentExecutor(
         agent=agent,
         tools=tools,
@@ -219,7 +214,7 @@ def main():
     """
     主程式：展示 Agent 自動化功能
     """
-    print("=== LangChain 0.3+ Agent 自動化展示 ===\n")
+    print("=== LangChain v1.0+ Agent 自動化展示 ===\n")
 
     if not os.getenv("OPENAI_API_KEY"):
         logger.error("請先設定 OPENAI_API_KEY 環境變數！")

@@ -9,10 +9,9 @@ from dotenv import load_dotenv
 from pydantic import BaseModel
 from sentence_transformers import SentenceTransformer
 
-# LangChain 0.3+ Imports
+# LangChain v1.0+ Imports
 from langchain_openai import ChatOpenAI, OpenAIEmbeddings
 from langchain_anthropic import ChatAnthropic
-from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain_core.retrievers import BaseRetriever
 from langchain.tools import Tool
 from langchain.agents import AgentExecutor, create_openai_tools_agent

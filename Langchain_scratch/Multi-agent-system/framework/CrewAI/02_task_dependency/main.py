@@ -1,6 +1,7 @@
 import os
 from crewai import Agent, Task, Crew, Process
 from dotenv import load_dotenv
+from langchain.tools import DuckDuckGoSearchRun
 
 # --- 環境設定 ---
 # 為了方便執行，我們從 .env 檔案加載 OpenAI API 金鑰
@@ -10,6 +11,11 @@ load_dotenv()
 
 # 如果沒有 .env 檔案，您也可以直接在這裡設定，但這不是一個好習慣
 # os.environ["OPENAI_API_KEY"] = "sk-..."
+
+# --- 工具設定 ---
+# 這裡我們使用 DuckDuckGoSearchRun 作為代理的工具。
+# 代理可以使用這個工具來執行網路搜尋，獲取即時資訊。
+search_tool = DuckDuckGoSearchRun()
 
 
 # =====================================================================================
@@ -21,10 +27,11 @@ load_dotenv()
 # 代理1：城市選擇專家
 city_selection_expert = Agent(
     role="旅遊目的地專家",
-    goal="根據用戶的偏好（例如天氣、季節、興趣），從全球範圍內選擇一個最適合的城市。",
-    backstory="您是一位經驗豐富的旅行顧問，擁有豐富的地理和文化知識，總能為旅客找到他們夢想中的完美度假地點。",
+    goal="根據用戶的偏好（例如天氣、季節、興趣），利用網路搜尋功能，從全球範圍內選擇一個最適合的城市。", # <-- 已更新，說明會使用網路搜尋
+    backstory="您是一位經驗豐富的旅行顧問，擁有豐富的地理和文化知識，並且精通網路搜尋，總能為旅客找到他們夢想中的完美度假地點。", # <-- 已更新，說明會使用網路搜尋
     verbose=True,  # 設定為 True，可以看到此代理的詳細執行過程
     allow_delegation=False, # 在這個簡單範例中，我們不允許代理之間互相委派任務
+    tools=[search_tool], # <-- 新增！讓這個代理可以使用網路搜尋工具
 )
 
 # 代理2：當地行程規劃師

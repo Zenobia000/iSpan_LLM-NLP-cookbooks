@@ -1,20 +1,17 @@
 """
-LangChain 0.3+ Agent 概念與架構
-展示 Agent 的基本概念、ReAct 框架和 OpenAI Function Calling
+LangChain v1.0+ Agent 概念與架構
+展示 Agent 的基本概念與新的 create_agent API
 
 需求套件:
-- langchain>=0.3.0
-- langchain-openai>=0.0.2
-- langchain-core>=0.1.0
-- langchain-community>=0.0.1
-- python-dotenv>=0.19.0
+- langchain>=1.0.0
+- langchain-openai>=0.2.0
+- langchain-core>=0.3.0
+- python-dotenv>=1.0.0
 """
 
+from langchain import create_agent
 from langchain_openai import ChatOpenAI
 from langchain.agents import tool
-from langchain.agents import create_openai_functions_agent
-from langchain.agents import AgentExecutor
-from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from typing import List, Dict, Any
 from dotenv import load_dotenv
 import logging
@@ -89,12 +86,12 @@ def analyze_text_sentiment(text: str) -> str:
         return "中性情感"
 
 
-def create_agent() -> AgentExecutor:
+def create_ai_agent():
     """
-    建立 Agent 執行器
+    使用 LangChain v1.0+ 新 API 建立 Agent
     """
     # 建立 LLM
-    llm = ChatOpenAI(
+    model = ChatOpenAI(
         temperature=0,
         model="gpt-3.5-turbo"
     )
@@ -111,14 +108,6 @@ def create_agent() -> AgentExecutor:
     回答時請使用繁體中文，並保持專業、友善的態度。
     """
 
-    # 建立提示詞模板
-    prompt = ChatPromptTemplate.from_messages([
-        ("system", system_prompt),
-        MessagesPlaceholder(variable_name='{chat_history}'),
-        ("human", "{input}"),
-        MessagesPlaceholder(variable_name='{agent_scratchpad}')
-    ])
-
     # 建立工具列表
     tools = [
         get_current_time,
@@ -126,24 +115,21 @@ def create_agent() -> AgentExecutor:
         analyze_text_sentiment
     ]
 
-    # 建立 Agent
-    agent = create_openai_functions_agent(llm, tools, prompt)
-
-    # 建立 Agent 執行器
-    agent_executor = AgentExecutor(
-        agent=agent,
+    # 使用新的 create_agent API
+    agent = create_agent(
+        model=model,
         tools=tools,
-        verbose=True
+        system_prompt=system_prompt
     )
 
-    return agent_executor
+    return agent
 
 
 def demonstrate_agent():
     """
     展示 Agent 的使用方式
     """
-    agent_executor = create_agent()
+    agent = create_ai_agent()
 
     # 測試案例
     test_cases = [
@@ -158,8 +144,8 @@ def demonstrate_agent():
         print(f"\n=== 測試案例 {i} ===")
         print(f"問題: {question}")
         try:
-            response = agent_executor.invoke({"input": question})
-            print(f"回答: {response['output']}")
+            response = agent.invoke(question)
+            print(f"回答: {response}")
         except Exception as e:
             logger.error(f"執行失敗: {str(e)}")
 
@@ -168,7 +154,7 @@ def main():
     """
     主程式：展示 Agent 的基本概念
     """
-    print("=== LangChain 0.3+ Agent 概念展示 ===\n")
+    print("=== LangChain v1.0+ Agent 概念展示 ===\n")
 
     if not os.getenv("OPENAI_API_KEY"):
         logger.error("請先設定 OPENAI_API_KEY 環境變數！")
