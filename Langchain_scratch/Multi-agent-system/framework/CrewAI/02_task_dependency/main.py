@@ -1,8 +1,7 @@
-import os
-from crewai import Agent, Task, Crew, Process, Tool
-from dotenv import load_dotenv
+from crewai import Agent, Task, Crew, Process
 from langchain_community.tools import DuckDuckGoSearchRun
-from langchain_core.tools import Tool
+from crewai.tools import tool
+from dotenv import load_dotenv
 
 # --- 環境設定 ---
 # 為了方便執行，我們從 .env 檔案加載 OpenAI API 金鑰
@@ -14,17 +13,12 @@ load_dotenv()
 # os.environ["OPENAI_API_KEY"] = "sk-..."
 
 # --- 工具設定 ---
-# 為了讓 CrewAI 能正確識別工具，我們將其包裝在一個 `crewai.Tool` 物件中。
-# `name`: 工具的名稱
-# `description`: 工具的描述，Agent 會根據這個描述來決定是否使用此工具
-# `func`: 指定工具實際執行的函數，這裡我們使用 DuckDuckGoSearchRun().run
-# 注意：使用此工具需要安裝 `langchain-community` 和 `duckduckgo-search` 套件
-search_tool = Tool(
-    name="DuckDuckGo Search",
-    description="A wrapper around DuckDuckGo Search. Use this to search for up-to-date information on the web.",
-    func=DuckDuckGoSearchRun().run
-)
-
+# 在這個版本的 CrewAI 中，我們使用 `@tool` 裝飾器來定義工具。
+# 我們定義一個函數，並用 `@tool` 標記它。函數的 docstring 會被用作工具的描述。
+@tool("DuckDuckGo Search")
+def search_tool(query: str) -> str:
+    """A wrapper around DuckDuckGo Search. Use this to search for up-to-date information on the web. The query should be a search string."""
+    return DuckDuckGoSearchRun().run(query)
 
 # =====================================================================================
 # 1. 定義我們的代理 (Agents)
@@ -109,7 +103,7 @@ crew = Crew(
     agents=[city_selection_expert, local_tour_guide, travel_concierge],
     tasks=[select_city_task, plan_itinerary_task, format_report_task],
     process=Process.sequential,  # 設定為循序執行流程
-    verbose=2  # verbose=2 會提供更詳細的執行日誌
+    verbose=True # 設定為 True，可以看到詳細的執行日誌
 )
 
 
