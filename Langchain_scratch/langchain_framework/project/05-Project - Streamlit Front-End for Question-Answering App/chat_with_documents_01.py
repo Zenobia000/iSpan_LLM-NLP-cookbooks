@@ -43,14 +43,40 @@ def create_embeddings(chunks):
 
 
 def ask_and_get_answer(vector_store, q, k=3):
-    from langchain_community.chains import RetrievalQA
     from langchain_openai import ChatOpenAI
+    from langchain_core.prompts import ChatPromptTemplate
+    from langchain_core.output_parsers import StrOutputParser
+    from langchain_core.runnables import RunnablePassthrough
 
-    llm = ChatOpenAI(model='gpt-3.5-turbo', temperature=1)
+    llm = ChatOpenAI(model='gpt-3.5-turbo', temperature=0.3)
     retriever = vector_store.as_retriever(search_type='similarity', search_kwargs={'k': k})
-    chain = RetrievalQA.from_chain_type(llm=llm, chain_type="stuff", retriever=retriever)
 
-    answer = chain.run(q)
+    # 使用 LangChain v1.0+ LCEL 建立 RAG Chain
+    template = """根據以下上下文回答問題。如果上下文中沒有相關資訊，請說明無法回答。
+
+上下文:
+{context}
+
+問題: {question}
+
+回答:"""
+
+    prompt = ChatPromptTemplate.from_template(template)
+
+    def format_docs(docs):
+        return "\n\n".join(doc.page_content for doc in docs)
+
+    chain = (
+        {
+            "context": retriever | format_docs,
+            "question": RunnablePassthrough()
+        }
+        | prompt
+        | llm
+        | StrOutputParser()
+    )
+
+    answer = chain.invoke(q)
     return answer
 
 

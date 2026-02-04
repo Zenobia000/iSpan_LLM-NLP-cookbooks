@@ -1,7 +1,8 @@
 import os
 from crewai import Agent, Task, Crew, Process
 from dotenv import load_dotenv
-from langchain.tools import DuckDuckGoSearchRun
+from langchain_community.tools import DuckDuckGoSearchRun
+from langchain.tools import Tool
 
 # --- 環境設定 ---
 # 為了方便執行，我們從 .env 檔案加載 OpenAI API 金鑰
@@ -13,9 +14,16 @@ load_dotenv()
 # os.environ["OPENAI_API_KEY"] = "sk-..."
 
 # --- 工具設定 ---
-# 這裡我們使用 DuckDuckGoSearchRun 作為代理的工具。
-# 代理可以使用這個工具來執行網路搜尋，獲取即時資訊。
-search_tool = DuckDuckGoSearchRun()
+# 為了讓 CrewAI 能正確識別工具，我們將其包裝在一個 `Tool` 物件中。
+# `name`: 工具的名稱
+# `description`: 工具的描述，Agent 會根據這個描述來決定是否使用此工具
+# `func`: 指定工具實際執行的函數，這裡我們使用 DuckDuckGoSearchRun().run
+# 注意：使用此工具需要安裝 `langchain-community` 和 `duckduckgo-search` 套件
+search_tool = Tool(
+    name="DuckDuckGo Search",
+    description="A wrapper around DuckDuckGo Search. Use this to search for up-to-date information on the web.",
+    func=DuckDuckGoSearchRun().run
+)
 
 
 # =====================================================================================
