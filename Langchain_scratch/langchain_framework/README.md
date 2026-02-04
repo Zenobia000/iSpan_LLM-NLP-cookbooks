@@ -26,7 +26,9 @@ langchain_framework/
 │       └── 3_5_4_custom_chain.py          # 自定義 Chain
 ├── project/               # 實作專案
 │   ├── 04-Project - Streamlit Custom ChatGPT App/
+│   │   └── project_streamlit_custom_chatgpt.py
 │   └── 05-Project - Streamlit Front-End for Question-Answering App/
+│       └── chat_with_documents.py     # RAG 文件問答系統
 ├── tools/                 # 實用工具
 │   ├── llm_api.py         # LLM API 工具
 │   ├── screenshot_utils.py # 截圖工具
