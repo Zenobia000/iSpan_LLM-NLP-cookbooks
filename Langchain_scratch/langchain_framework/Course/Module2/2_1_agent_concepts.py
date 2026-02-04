@@ -9,9 +9,9 @@ LangChain v1.0+ Agent 概念與架構
 - python-dotenv>=1.0.0
 """
 
-from langchain import create_agent
+from langchain.agents import create_agent
 from langchain_openai import ChatOpenAI
-from langchain.agents import tool
+from langchain_core.tools import tool
 from typing import List, Dict, Any
 from dotenv import load_dotenv
 import logging
@@ -88,12 +88,12 @@ def analyze_text_sentiment(text: str) -> str:
 
 def create_ai_agent():
     """
-    使用 LangChain v1.0+ 新 API 建立 Agent
+    使用 LangChain v1.0+ 新的 create_agent API 建立 Agent
     """
     # 建立 LLM
     model = ChatOpenAI(
         temperature=0,
-        model="gpt-3.5-turbo"
+        model="gpt-4o-mini"  # v1.0+ 建議使用更新的模型
     )
 
     # 定義系統提示詞
@@ -115,11 +115,11 @@ def create_ai_agent():
         analyze_text_sentiment
     ]
 
-    # 使用新的 create_agent API
+    # 使用 v1.0+ 的 create_agent API
     agent = create_agent(
-        model=model,
+        llm=model,  # 參數名稱更改為 llm
         tools=tools,
-        system_prompt=system_prompt
+        prompt=system_prompt  # 參數名稱更改為 prompt
     )
 
     return agent

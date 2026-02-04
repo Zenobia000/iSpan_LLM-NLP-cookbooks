@@ -1,11 +1,11 @@
 """
-LangChain 0.3+ 安裝與環境設定教學
-此範例展示如何設置 LangChain 開發環境並驗證安裝
+LangChain v1.0+ 安裝與環境設定教學
+此範例展示如何設置 LangChain v1.0+ 開發環境並驗證安裝
 
 需求套件:
-- langchain>=0.3.0
-- langchain-openai>=0.0.2
-- python-dotenv>=0.19.0
+- langchain>=1.0.0
+- langchain-openai>=0.2.0
+- python-dotenv>=1.0.0
 """
 
 import sys
@@ -25,10 +25,10 @@ logger = logging.getLogger(__name__)
 
 def check_python_version() -> bool:
     """
-    檢查 Python 版本是否符合要求 (建議 3.9+)
+    檢查 Python 版本是否符合要求 (v1.0+ 需要 Python 3.10+)
     """
     current_version = sys.version_info
-    required_version = (3, 9)
+    required_version = (3, 10)
 
     if current_version >= required_version:
         logger.info(f"Python 版本檢查通過: {sys.version}")
@@ -46,11 +46,11 @@ def get_required_packages() -> Dict[str, str]:
     取得必要套件清單及其版本要求
     """
     return {
-        "langchain": ">=0.3.0",
-        "langchain-openai": ">=0.0.2",
-        "langchain-community": ">=0.0.1",
-        "python-dotenv": ">=0.19.0",
-        "openai": ">=1.0.0"
+        "langchain": ">=1.0.0",
+        "langchain-openai": ">=0.2.0",
+        "langchain-community": ">=0.3.0",
+        "python-dotenv": ">=1.0.0",
+        "openai": ">=1.30.0"
     }
 
 
@@ -96,7 +96,7 @@ def main():
     """
     主程式：執行環境檢查與設定
     """
-    print("=== LangChain 0.3+ 環境設定精靈 ===\n")
+    print("=== LangChain v1.0+ 環境設定精靈 ===\n")
 
     # 1. 檢查 Python 版本
     if not check_python_version():

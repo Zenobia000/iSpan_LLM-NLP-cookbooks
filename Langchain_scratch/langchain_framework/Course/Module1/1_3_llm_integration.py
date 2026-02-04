@@ -1,12 +1,12 @@
 """
-LangChain 0.3+ LLM 整合示例
+LangChain v1.0+ LLM 整合示例
 展示如何整合不同的 LLM 提供者（OpenAI、Anthropic、Local LLM）
 
 需求套件:
-- langchain>=0.3.0
-- langchain-openai>=0.0.2
-- langchain-anthropic>=0.0.1
-- python-dotenv>=0.19.0
+- langchain>=1.0.0
+- langchain-openai>=0.2.0
+- langchain-anthropic>=0.2.0
+- python-dotenv>=1.0.0
 """
 
 from langchain_openai import ChatOpenAI
@@ -48,12 +48,12 @@ def create_llm(provider: str = "openai", **kwargs) -> Any:
     try:
         if provider == "openai":
             return ChatOpenAI(
-                model="gpt-3.5-turbo",
+                model="gpt-4o-mini",  # v1.0+ 建議使用更新的模型
                 **params
             )
         elif provider == "anthropic":
             return ChatAnthropic(
-                model_name="claude-3-5-sonnet-20240620",
+                model="claude-3-5-sonnet-20241022",  # 更新的 Claude 模型
                 **params
             )
         else:
@@ -125,7 +125,7 @@ def main():
     """
     主程式：展示不同 LLM 提供者的使用方式
     """
-    print("=== LangChain 0.3+ LLM 整合展示 ===\n")
+    print("=== LangChain v1.0+ LLM 整合展示 ===\n")
 
     # 檢查環境變數
     required_keys = {

@@ -1,12 +1,12 @@
 """
-LangChain 0.3+ Chains 基礎教學
-展示不同類型的 Chains 使用方式，包含 Sequential Chain、Router Chain 等
+LangChain v1.0+ Chains 基礎教學（LCEL）
+展示 v1.0+ 的 LCEL (LangChain Expression Language) 使用方式，包含 Sequential Chain、Router Chain 等
 
 需求套件:
-- langchain>=0.3.0
-- langchain-openai>=0.0.2
-- langchain-core>=0.1.0
-- python-dotenv>=0.19.0
+- langchain>=1.0.0
+- langchain-openai>=0.2.0
+- langchain-core>=0.3.0
+- python-dotenv>=1.0.0
 """
 
 from langchain_core.prompts import ChatPromptTemplate
@@ -35,7 +35,10 @@ def create_translation_chain():
     建立翻譯鏈：將輸入文本翻譯成指定語言
     """
     # 建立 LLM
-    llm = ChatOpenAI(temperature=0.1)
+    llm = ChatOpenAI(
+        model="gpt-4o-mini",  # v1.0+ 建議模型
+        temperature=0.1
+    )
 
     # 建立翻譯提示詞
     translation_prompt = ChatPromptTemplate.from_template("""
@@ -60,7 +63,10 @@ def create_analysis_chain():
     """
     建立分析鏈：分析文本的主要觀點和情感
     """
-    llm = ChatOpenAI(temperature=0.3)
+    llm = ChatOpenAI(
+        model="gpt-4o-mini",  # v1.0+ 建議模型
+        temperature=0.3
+    )
 
     analysis_prompt = ChatPromptTemplate.from_template("""
     請分析以下文本的主要觀點和情感：
@@ -100,7 +106,10 @@ def create_router_chain():
     """
     建立路由鏈：根據輸入內容選擇適當的處理鏈
     """
-    llm = ChatOpenAI(temperature=0)
+    llm = ChatOpenAI(
+        model="gpt-4o-mini",  # v1.0+ 建議模型
+        temperature=0
+    )
 
     router_prompt = ChatPromptTemplate.from_template("""
     請判斷以下文本需要什麼類型的處理：
@@ -181,7 +190,7 @@ def main():
     """
     主程式：展示 Chains 的基本使用方式
     """
-    print("=== LangChain 0.3+ Chains 基礎展示 ===\n")
+    print("=== LangChain v1.0+ LCEL Chains 基礎展示 ===\n")
 
     if not os.getenv("OPENAI_API_KEY"):
         logger.error("請先設定 OPENAI_API_KEY 環境變數！")

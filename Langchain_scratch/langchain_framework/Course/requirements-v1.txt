@@ -1,0 +1,41 @@
+# LangChain v1.0+ 課程依賴套件
+# 此檔案包含 LangChain v1.0+ 教學所需的所有套件
+
+# 核心套件 (v1.0+ 必須)
+langchain>=1.0.0
+langchain-core>=0.3.0
+langchain-community>=0.3.0
+
+# LLM 提供者
+langchain-openai>=0.2.0
+langchain-anthropic>=0.2.0
+openai>=1.30.0
+
+# 環境與工具
+python-dotenv>=1.0.0
+jupyter>=1.0.0
+notebook>=7.0.0
+
+# 向量資料庫
+chromadb>=0.4.0
+faiss-cpu>=1.7.4
+pinecone-client>=3.0.0
+
+# 文檔處理
+pypdf>=3.0.0
+python-docx>=0.8.11
+beautifulsoup4>=4.12.0
+html2text>=2020.1.16
+
+# 監控與除錯
+langsmith>=0.0.70
+
+# 可選：本地 LLM 支援
+# huggingface-hub>=0.17.0
+# transformers>=4.30.0
+# torch>=2.0.0
+
+# 開發工具
+pytest>=7.0.0
+black>=23.0.0
+isort>=5.12.0
