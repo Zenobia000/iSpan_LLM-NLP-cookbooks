@@ -81,7 +81,7 @@
 
 - **學習目標**:說清楚「AI 為何不聽話」——能指出任一段輸出的不確定性來自哪裡。
 - **核心原理**:Tokenization、機率取樣(temperature / top_p)、Context window 限制、知識截止、幻覺來源、模型能力邊界(「泡泡」概念)。
-- **動手實作**:🟢 `101` 基礎 API 呼叫 ｜ ⭐ temperature/top_p 視覺化 demo(同一 prompt 跑 10 次看分歧) ｜ 🟡 `130` thinking/reasoning model(示範模型「內部已會 CoT」,埋下 M2「不必手刻 CoT」伏筆)。
+- **動手實作**:🟢 `101` 基礎 API 呼叫 ｜ ⭐ temperature/top_p 視覺化 demo(同一 prompt 跑 10 次看分歧) ｜ 🟡 `130` thinking/reasoning model(示範模型「內部已會 CoT」,埋下 M2「不必手刻 CoT」伏筆) ｜ 🟢 `HuggingFace_scratch/01-Component/02tokenizer`(tokenizer 內部機制,把「tokenization 為何造成不可控」講到底層)。
 - **可控性檢核點**:給一段輸出,能歸因出三個不確定性來源並各提一個收斂手段。
 - **常見失敗模式**:把機率性輸出當確定事實;溫度設定誤用。
 - **真實案例**:律師引用 ChatGPT 捏造判例遭法院制裁。
@@ -126,7 +126,7 @@
 
 - **學習目標**:掌握多 agent 設計模式(Handoffs、Agents-as-Tools、Orchestrator-Workers、Parallelization);會判讀 Cascade failure;建立 Cross-Model Review 觀念。
 - **核心原理**:何時該用多 agent、何時是過度設計(YAGNI);協作的脆弱性。
-- **動手實作**:🟡 `970` OpenAI Agents SDK(handoffs / agents-as-tools / deterministic / orchestrator / self-reflection / human-in-the-loop,幾乎可整段沿用) ｜ 🟡 `721` deep search(single→multi 對照) ｜ ⭐ Cross-model review(OpenAI 產出 + Claude 審查)。
+- **動手實作**:🟡 `970` OpenAI Agents SDK(handoffs / agents-as-tools / deterministic / orchestrator / self-reflection / human-in-the-loop,幾乎可整段沿用) ｜ 🟡 `721` deep search(single→multi 對照) ｜ 🟡 `Langchain_scratch/Multi-agent-system`(CrewAI 多智能體長文寫作,當「orchestration 模式」真實案例——**講模式不講框架**) ｜ ⭐ LangGraph 狀態圖式 orchestration 對照(只示範控制邏輯) ｜ ⭐ Cross-model review(OpenAI 產出 + Claude 審查)。
 - **可控性檢核點**:設計一個 orchestrator-workers 流程,並加入 human-in-the-loop 確認點。
 - **常見失敗模式**:Cascade failure、Sycophancy、為用而用的多 agent。
 - **🔴 刪除**:`960` Swarm(已被 Agents SDK 取代)。
@@ -135,14 +135,14 @@
 
 - **學習目標**:設計 feedback loop 讓 agent 自我驗證;評估 RAG / agent 品質;理解「能力泡泡會擴張、要持續移動交接點」。
 - **核心原理**:Verifiability 的大循環;讓 AI 在封閉環境瘋狂試錯。
-- **動手實作**:🟢 `610` RAG evaluation ｜ 🟡 `721` 加上驗證迴圈 ｜ ⭐ 自動化 feedback loop(跑測試 → 讀 log → 自我修正) ｜ 🟡 `810` 合成資料微調(校準的延伸選讀)。
+- **動手實作**:🟢 `610` RAG evaluation ｜ 🟡 `721` 加上驗證迴圈 ｜ ⭐ 自動化 feedback loop(跑測試 → 讀 log → 自我修正) ｜ 🟡 `810` 合成資料微調 ｜ 🟢 `HuggingFace_scratch/03-PEFT`(LoRA/IA3)、`04-kbits-tuning`、`02-Adv-tasks/01-finetune_optimize`(微調 = 一種校準/控制手段,作為進階選讀)。
 - **可控性檢核點**:為自己的專題設計一個自動驗證迴圈。
 - **常見失敗模式**:自我審核過度自信;沒有 ground truth 的假評估。
 
 ### M8 整合專題 Capstone(W15–16)
 
 - **學習目標**:整合控制權階梯每一層,從 0 打造一個「可控」的 AI 系統。
-- **交付物**:Spec + 系統實作 + 驗證迴圈 + 失敗模式分析 + Demo。
+- **交付物**:Spec + 系統實作 + 驗證迴圈 + 失敗模式分析 + Demo(🟢 `Langchain_scratch/streamlit_resource` 作為選用 UI 載體)。
 - **評量 rubric**:對應五層控制機制 + 可驗證性,每項計分。
 - **題庫範例**:可控客服 agent ｜ 文件 grounded 問答 ｜ 研究助理 deep search ｜ 結構化抽取 pipeline。
 
@@ -171,11 +171,43 @@
 - `205` plugin-tools、`206` prompt-integration-usecase
 - `401` chatbot
 - `501` / `502` Whisper 摘要(語音應用,主線未涵蓋)
-- `601--embedding` 與 `605` 之外的 `610__`(檔名疑似重複,需確認 `610--` vs `610__`)
-- `810` 合成資料微調(目前列為 M7 選讀)
+- `610--` vs `610__`(檔名疑似重複,需確認去留)
 
-## 9. 後續步驟
+## 9. HuggingFace_scratch 與 Langchain_scratch 處置
+
+兩個目錄**已 git 追蹤、近期 commit、README 明列為核心結構**,非未使用資產,**不刪除**。處置原則:**相關內容編入課程模組,其餘移至 `_archive/`**(用 `git mv` 保留歷史),框架僅作控制機制的實作載體,不喧賓奪主。
+
+### 編入課程(實體不移動,由模組引用)
+| 來源 | 模組 | 角色 |
+|---|---|---|
+| `HuggingFace_scratch/01-Component/02tokenizer` | M1 | tokenization 底層機制 |
+| `HuggingFace_scratch/03-PEFT`、`04-kbits-tuning`、`02-Adv-tasks/01-finetune_optimize` | M7 | 微調作為校準手段(進階選讀) |
+| `Langchain_scratch/Multi-agent-system`(CrewAI/長文寫作) | M6 | orchestration 模式真實案例(講模式不講框架) |
+| `Langchain_scratch/streamlit_resource` | M8 | capstone 選用 UI 載體 |
+
+### 移至 `_archive/`(不屬可控性主軸,保留歷史)
+- `HuggingFace_scratch/01-Component/{01pipeline,03Model,04Datasets,05evaluate,06Trainer,demo}`(HF 框架基礎)
+- `HuggingFace_scratch/02-Adv-tasks/{02~08}`(經典 NLP 任務:NER/QA/摘要等)
+- `HuggingFace_scratch/05-Distributed Training`(基礎設施)
+- `Langchain_scratch/langchain_framework/Course`(框架本身課程,與「不以框架為重」相衝)
+- `Langchain_scratch/Slides`(框架導向投影片,待確認)
+
+> 註:封存涉及移動 100+ 已追蹤檔案並同步更新 README,屬大變更,於實作計畫中排為獨立步驟、附 README 同步更新。
+
+## 10. 2026 程式碼更新原則(全面,而非僅 model 字串)
+
+以 2026 文件為準,所有編入主線的 notebook **程式碼一併更新**,不只替換 model 名稱:
+
+- **Model**:`gpt-3.5-turbo` → 現行模型;補 reasoning model(o 系列)、Claude 對照(Opus/Sonnet 4.x)。
+- **SDK 寫法**:OpenAI 改用現行 SDK 介面(Responses API、新版 function/tools schema、structured outputs);Assistants API 淘汰寫法全面改寫。
+- **棄用模式移除**:刪 `960` Swarm;`208` ToT 手刻降級;CoT 改為「reasoning model 時代用法」。
+- **相依套件**:`requirements` 對齊 2026 版本(openai、langchain v1.0+、agents SDK 等)。
+- **驗證**:每支改寫後的 notebook 需可實際執行(或標註所需金鑰/資源),不留壞 cell。
+
+## 11. 後續步驟
 
 1. 本設計文件經使用者複審。
-2. 進入 writing-plans,產出逐模組的實作計畫(notebook 改寫工單:沿用驗證、改寫範圍、新增內容草稿)。
-3. 建議實作順序:先做 L1 機械更新(model 字串升級、刪 deprecated)建立乾淨基線,再按模組改寫/新增。
+2. 進入 writing-plans,產出實作計畫,順序建議:
+   - **Step 0**:L1 機械基線——model 字串升級、刪 deprecated、建立乾淨可執行基線。
+   - **Step 1**:`_archive` 封存 + README 同步更新。
+   - **Step 2**:逐模組改寫/新增(含第 10 節的全面程式碼更新)。
