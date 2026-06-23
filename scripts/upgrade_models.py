@@ -26,10 +26,9 @@ MODEL_MAP: dict[str, str] = {
     "gpt-4-0613": "gpt-4o",
 }
 
-# 機械基線跳過:需人工處理或即將刪除。
+# 機械基線跳過:需人工 model-aware 改寫。
 EXCLUDE = {
     "810-fine-tune-with-synthetic-data.ipynb",
-    "960--LLM-workshop-swarm.ipynb",
 }
 
 # 原始 .ipynb 中:雙引號為 \" ;單引號為 ' 。兩端必為同型,且 id 不含引號,

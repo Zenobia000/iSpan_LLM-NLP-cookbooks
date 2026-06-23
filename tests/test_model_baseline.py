@@ -12,12 +12,9 @@ FORBIDDEN = [
     "gpt-4-turbo", "gpt-4-0613",
 ]
 
-# 豁免:需人工處理,不在機械基線範圍。
+# 豁免:需人工處理(人工 model-aware 改寫),不在機械基線範圍。
 EXEMPT = {
     "810-fine-tune-with-synthetic-data.ipynb",
-    # 960 swarm 示範刻意使用 gpt-3.5-turbo(弱模型)vs gpt-4o(強模型)對抗,
-    # 保留差異是教學設計的一部分;與 upgrade_models.py EXCLUDE 清單一致。
-    "960--LLM-workshop-swarm.ipynb",
 }
 
 

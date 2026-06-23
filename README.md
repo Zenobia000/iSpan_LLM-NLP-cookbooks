@@ -84,6 +84,8 @@ iSpan_LLM-NLP-cookbooks/
 │   │
 │   └── streamlit_resource/              # Streamlit UI 開發
 │
+├── 📊 Slides/                           # 課程投影片
+│
 ├── 📝 prompt-engineering/               # 提示工程專題
 │   ├── 基礎技術 (101-103)              # OpenAI 基礎
 │   ├── 進階提示 (201-208)              # CoT, ToT 等
