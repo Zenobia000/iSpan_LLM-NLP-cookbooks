@@ -4,6 +4,8 @@
 
 本專案為 **iSpan** 學院 LLM（大型語言模型）與 NLP（自然語言處理）的系統化教學課程程式碼庫，採用**金字塔結構**與 **MECE原則**（Mutually Exclusive, Collectively Exhaustive）設計，提供從基礎到進階的完整學習路徑。
 
+> 📐 **課程重構中**:本庫正依《AI 可控性工程:從使用者到指揮官》重新編排,主軸為「可控性」。設計文件見 [`docs/superpowers/specs/2026-06-23-ai-controllability-engineering-curriculum-design.md`](docs/superpowers/specs/2026-06-23-ai-controllability-engineering-curriculum-design.md)。部分非主軸內容已移至 [`_archive/`](_archive/)。
+
 ## 📊 專案架構（金字塔結構）
 
 ```
@@ -57,17 +59,9 @@ iSpan_LLM-NLP-cookbooks/
 │   │   ├── 03-8bits_training/           # 8-bit 訓練
 │   │   ├── 04-4bits_training/           # 4-bit 訓練 (QLoRA)
 │   │   └── LLaMA2-prompt-tuning/        # LLaMA2 提示調優
-│   │
-│   └── 05-Distributed Training/         # 分散式訓練
-│       ├── 01-remote ssh/               # 遠程 SSH 訓練
-│       └── 02-data parallel/            # 資料並行訓練
 │
 ├── 🦜 Langchain_scratch/                # LangChain 框架系統
 │   ├── langchain_framework/             # 核心框架學習
-│   │   ├── Course/                      # 課程模組
-│   │   │   ├── Module1/                 # 基礎概念
-│   │   │   ├── Module2/                 # Agent 與工具
-│   │   │   └── Module3/                 # RAG 系統
 │   │   ├── project/                     # 實戰專案
 │   │   │   ├── 01-Project - Building a Custom ChatGPT App/
 │   │   │   ├── 02-Project - QA on Private Documents/
@@ -98,9 +92,12 @@ iSpan_LLM-NLP-cookbooks/
 │   ├── RAG 系統 (601-607, 610, 612)    # 檢索增強生成
 │   ├── Agent 框架 (701-721)            # Function Calling
 │   ├── 模型微調 (810)                  # 合成資料微調
-│   └── 多智能體 (960, 970)             # Swarm, SDK
+│   └── 多智能體 (970)                  # OpenAI Agents SDK
 │
-└── 📊 Slides/                           # 課程投影片
+└── 🗄️ _archive/                         # 已封存(非主軸,保留歷史)
+    ├── HuggingFace_scratch/05-Distributed Training/
+    ├── Langchain_scratch/Slides/
+    └── Langchain_scratch/langchain_framework/Course/
 ```
 
 ## 📋 專案統計
@@ -218,10 +215,9 @@ jupyter notebook
 
 ## 🔄 最後更新
 
-**日期**: 2026-02-04
+**日期**: 2026-06-23
 
 **內容**:
-- 完整掃描專案結構並更新 README.md
-- 新增詳細目錄樹狀結構
-- 更新專案統計資訊
-- 優化學習路徑建議
+- 啟動《AI 可控性工程》課程重構(spec 見 docs/superpowers/specs/)
+- 升級全 notebook model 字串、移除淘汰範例(960 Swarm、610 重複檔)
+- 封存非主軸內容至 _archive/
