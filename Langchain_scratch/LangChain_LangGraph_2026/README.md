@@ -114,9 +114,6 @@ jupyter notebook
 
 ## 延伸：本資料夾的其他資源
 
-- `../../_archive/Langchain_scratch/langchain_framework/project/` — 5 個應用專案
-  （Custom ChatGPT、私有文件 QA、摘要、Streamlit 前端），已封存至 `_archive`，
-  可作為學完本課程後的**實戰練習素材**。
 - `../Multi-agent-system/` — 多智能體長文寫作專案（STORM / LangGraph / Deep Research），與第二冊
   M06「多智能體」可互相對照。
 
