@@ -255,13 +255,13 @@
 
 **交付物**: 完整的手動版 STORM 系統
 
-#### 📅 Week 4-5: CrewAI 框架版本
+#### 📅 Week 4-5: LangGraph 框架版本
 **目標**: 使用框架重構系統
 **重點**:
-- CrewAI 架構設計
-- 智能體配置優化
-- 任務流程自動化
-- 進階功能整合
+- LangGraph 狀態設計
+- 研究、寫作、編輯節點拆分
+- 條件路由與 human-in-the-loop
+- 延伸到 deep research 子圖
 
 **交付物**: 生產級的 STORM 系統
 
