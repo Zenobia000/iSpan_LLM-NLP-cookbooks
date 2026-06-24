@@ -86,15 +86,15 @@ iSpan_LLM-NLP-cookbooks/
 │
 ├── 📊 Slides/                           # 課程投影片
 │
-├── 📝 prompt-engineering/               # 提示工程專題
-│   ├── 基礎技術 (101-103)              # OpenAI 基礎
-│   ├── 進階提示 (201-208)              # CoT, ToT 等
-│   ├── 應用開發 (401-402)              # 聊天機器人
-│   ├── 語音處理 (501-502)              # Whisper 整合
-│   ├── RAG 系統 (601-607, 610, 612)    # 檢索增強生成
-│   ├── Agent 框架 (701-721)            # Function Calling
-│   ├── 模型微調 (810)                  # 合成資料微調
-│   └── 多智能體 (970)                  # OpenAI Agents SDK
+├── 📝 prompt-engineering/               # AI 可控性工程主課程（控制權階梯）
+│   ├── 01-uncontrollability/            # 不可控的根源
+│   ├── 02-intent-convergence/           # 意圖收斂：prompt → spec
+│   ├── 03-structured-output/            # 結構收斂：JSON / function calling
+│   ├── 04-knowledge-rag/                # 知識收斂：RAG
+│   ├── 05-agent-harness/                # 行為收斂：agent harness
+│   ├── 06-multi-agent/                  # 協作收斂：多 agent
+│   ├── 07-calibration-eval/             # 校準層：驗證與評估
+│   └── 08-capstone/                     # 整合專題
 │
 └── 🗄️ _archive/                         # 已封存(非主軸,保留歷史)
     ├── HuggingFace_scratch/05-Distributed Training/
@@ -217,9 +217,10 @@ jupyter notebook
 
 ## 🔄 最後更新
 
-**日期**: 2026-06-23
+**日期**: 2026-06-24
 
 **內容**:
 - 啟動《AI 可控性工程》課程重構(spec 見 docs/superpowers/specs/)
 - 升級全 notebook model 字串、移除淘汰範例(960 Swarm、610 重複檔)
 - 封存非主軸內容至 _archive/
+- prompt-engineering 依控制權階梯分層為 8 個英文模組資料夾、notebook 全面英文化命名
