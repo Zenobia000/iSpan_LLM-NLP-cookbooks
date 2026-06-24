@@ -1,0 +1,43 @@
+# =====================================================================
+# LangChain x LangGraph 教學課程 (2026) — 統一依賴清單
+# 安裝： pip install -r requirements.txt
+# Python 需求： 3.10+
+# =====================================================================
+
+# --- 核心框架 (LangChain v1) ---
+langchain>=1.0
+langchain-core>=1.0
+langchain-text-splitters>=1.0
+langchain-community>=0.3        # 文件載入器、整合 (TextLoader/PyPDFLoader 等)
+
+# --- 編排框架 (LangGraph v1) ---
+langgraph>=1.0
+langgraph-checkpoint>=2.0       # InMemorySaver / 基礎持久化
+langgraph-checkpoint-sqlite>=2.0  # SqliteSaver (本機可持久化記憶)
+
+# --- 模型供應商 (依需求擇一或多個) ---
+langchain-openai>=0.2           # init_chat_model("openai:...")
+langchain-anthropic>=0.3        # init_chat_model("anthropic:...")
+# langchain-ollama>=0.2         # 本地模型，取消註解即可
+
+# --- RAG / 向量檢索 ---
+chromadb>=0.5                   # 進階：可持久化向量庫
+rank-bm25>=0.2.2                # 關鍵字檢索 / 混合檢索
+
+# --- 文件解析 ---
+pypdf>=4.0
+python-docx>=1.1
+
+# --- 結構化輸出 / 資料模型 ---
+pydantic>=2.0
+
+# --- 環境與工具 ---
+python-dotenv>=1.0
+tiktoken>=0.7                   # token 計數
+
+# --- Notebook 執行環境 ---
+jupyter>=1.0
+ipykernel>=6.0
+
+# --- 視覺化 (LangGraph 圖形繪製，選用) ---
+grandalf>=0.8                   # graph.get_graph().print_ascii()
