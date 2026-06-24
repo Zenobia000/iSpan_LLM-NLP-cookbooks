@@ -181,3 +181,6 @@ Langchain_scratch/.env.example
 
 # IDE specific files
 Langchain_scratch/langchain_framework/.idea/
+
+# 大型 PDF 課程來源教材（體積過大，不入庫）
+prompt-engineering/*.pdf
