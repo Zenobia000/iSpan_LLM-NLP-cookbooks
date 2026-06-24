@@ -30,8 +30,8 @@
 主課程 `prompt-engineering/` 以 [uv](https://docs.astral.sh/uv/) 管理依賴，5 分鐘內可跑起第一個 notebook：
 
 ```bash
-git clone https://github.com/Zenobia000/iSpan_LLM-NLP-cookbooks.git
-cd iSpan_LLM-NLP-cookbooks/prompt-engineering
+git clone https://github.com/Zenobia000/iSpan_2026_LLM-NLP-cookbooks.git
+cd iSpan_2026_LLM-NLP-cookbooks/prompt-engineering
 
 uv sync
 cp .env.example .env    # 填入 OPENAI / ANTHROPIC / GEMINI 等 API 金鑰
@@ -98,7 +98,7 @@ uv run jupyter lab
 ## 目錄結構
 
 ```
-iSpan_LLM-NLP-cookbooks/
+iSpan_2026_LLM-NLP-cookbooks/
 ├── prompt-engineering/          # 主課程（uv + uv.lock）
 ├── HuggingFace_scratch/         # HF 組件、任務、PEFT、量化
 ├── Langchain_scratch/
@@ -133,7 +133,7 @@ iSpan_LLM-NLP-cookbooks/
 
 **貢獻**：Fork → 特性分支 → PR。Notebook 變更請先做 JSON 與 code cell syntax 驗證再提交。
 
-**問題回報**：[GitHub Issues](https://github.com/Zenobia000/iSpan_LLM-NLP-cookbooks/issues)
+**問題回報**：[GitHub Issues](https://github.com/Zenobia000/iSpan_2026_LLM-NLP-cookbooks/issues)
 
 **授權**：[MIT License](./LICENSE)
 
