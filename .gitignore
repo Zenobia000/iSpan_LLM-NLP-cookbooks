@@ -12,6 +12,8 @@ dual_model_cp/
 *.arrow
 *.csv
 *.json
+!.mcp.example.json
+!prompt-engineering/mcp/*.json
 
 
 

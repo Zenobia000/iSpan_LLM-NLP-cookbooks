@@ -15,8 +15,8 @@
              /         |         \      /         |         \
       基礎組件    進階任務    模型優化   框架基礎   🤖多智能體   📝長文寫作
         |          |          |        |         |         |
-    Pipeline   微調優化    量化訓練   Chain      CrewAI    STORM
-    Tokenizer  問答系統   分散式訓練  Agent     MetaGPT   框架
+    Pipeline   微調優化    量化訓練   Chain    LangGraph  STORM
+    Tokenizer  問答系統   分散式訓練  Agent   Deep Research 長文研究
      Model     聊天機器人   PEFT      RAG      協作模式   主題展開
 ```
 
@@ -72,7 +72,7 @@ iSpan_LLM-NLP-cookbooks/
 │   │
 │   ├── Multi-agent-system/              # 🤖 多智能體系統
 │   │   ├── framework/                   # 框架實作
-│   │   │   └── CrewAI/                  # CrewAI 框架
+│   │   │   └── LangGraph_2026/          # LangGraph deep research 主線
 │   │   │       ├── 01_basic_structure/  # 基礎結構
 │   │   │       ├── 02_task_dependency/  # 任務依賴
 │   │   │       └── 03_manager_pattern/  # 管理者模式
@@ -113,16 +113,16 @@ iSpan_LLM-NLP-cookbooks/
 ## ⭐ 核心特色
 
 ### 🤖 多智能體框架教學
-- **CrewAI 完整生態**: 從入門模板到複雜階層式任務分配
-- **協作模式設計**: Sequential、Hierarchical、Manager-Worker 模式
-- **工具整合生態**: 計算器、搜索引擎、翻譯工具的無縫整合
-- **實際應用場景**: 旅行規劃、軟體開發、內容創作等多領域
+- **LangGraph 2026 主線**: 用 StateGraph、Send、reducer 建立可控多智能體流程
+- **Deep Research 架構**: 參考 open_deep_research，示範研究規劃、並行研究與報告生成
+- **協作模式設計**: Planner、Researcher、Writer、Reviewer 的明確節點分工
+- **Legacy 對照**: CrewAI 範例保留為歷史素材，不再作為新課程主線
 
 ### 📝 長文本寫作專案
-- **STORM 寫作框架**: 多層次大綱生成與內容組織
-- **主題展開技術**: Globe Explorer 創新展開模式
-- **RAG 整合寫作**: 向量檢索支援的智能內容生成
-- **多智能體協作**: 研究員、作家、編輯的專業分工
+- **STORM 寫作框架**: 多視角研究、大綱生成、初稿與修訂
+- **LangChain LCEL 教學**: 把研究、大綱、寫作串成可讀的 Runnable 管線
+- **LangGraph 寫作流程**: 用 state 管理 research_notes、outline、draft、review
+- **Deep Research 延伸**: 將研究節點升級為 open_deep_research 風格的並行研究流程
 
 ### 🚀 進階技術亮點
 - **量化訓練**: 支援 16/8/4-bit 訓練，包含 QLoRA
@@ -135,7 +135,7 @@ iSpan_LLM-NLP-cookbooks/
 ### 核心框架
 - **HuggingFace Transformers**: 模型訓練與推理
 - **LangChain**: LLM 應用開發框架
-- **CrewAI**: 多智能體協作框架
+- **LangGraph**: 多步驟、多智能體、有狀態編排
 - **OpenAI API**: GPT 系列模型整合
 
 ### 支援工具
@@ -153,8 +153,8 @@ iSpan_LLM-NLP-cookbooks/
 
 ### 🟡 進階路徑（6-8週）
 1. PEFT 與模型微調 → Function Calling
-2. 多智能體框架 (CrewAI) → 協作模式設計
-3. STORM 長文寫作系統 → RAG 整合應用
+2. 多智能體框架 (LangGraph) → 協作模式設計
+3. STORM 長文寫作系統 → Deep Research 整合應用
 
 ### 🔴 專家路徑（8-12週）
 1. 量化訓練與分散式系統
@@ -166,20 +166,31 @@ iSpan_LLM-NLP-cookbooks/
 ```bash
 # 1. 克隆專案
 git clone https://github.com/Zenobia000/iSpan_LLM-NLP-cookbooks.git
-
-# 2. 進入專案目錄
 cd iSpan_LLM-NLP-cookbooks
-
-# 3. 安裝依賴（根據子專案選擇）
-pip install -r requirements.txt
-
-# 4. 設置環境變數
-cp .env.example .env
-# 編輯 .env 文件，添加您的 API keys
-
-# 5. 開始學習
-jupyter notebook
 ```
+
+## 🤖 Agent 導入
+
+本專案已加入可讓 coding agent 實際採用的導入層：
+
+- `AGENT.md`：專案層 agent 規則、驗證方式與安全邊界。
+- `.mcp.example.json`：本地課程 MCP server 與 GitHub read-only server 設定範例，不包含真實 token。
+- `prompt-engineering/mcp/`：自己寫的最小 MCP server、教學 client、工具選擇情境。
+- `prompt-engineering/agent-skills/`：課程維護用 Skills。
+- `docs/agent-integration.md`：AGENT.md / MCP / Skills 的啟用方式與權限建議。
+
+使用 agent 維護教材前，先讓 agent host 讀取根目錄 `AGENT.md`；若需要 MCP，依 host 格式套用 `.mcp.example.json`，並以環境變數提供 token。
+
+### 主課程 `prompt-engineering/`（以 uv 管理，2026 定版）
+
+```bash
+cd prompt-engineering
+uv sync                      # 安裝 uv.lock 鎖定的依賴
+cp .env.example .env         # 填入 OPENAI/ANTHROPIC/GEMINI 等金鑰
+uv run jupyter lab           # 啟動
+```
+
+> 詳見 [`prompt-engineering/README.md`](prompt-engineering/README.md)。其餘子專案（HuggingFace_scratch、Langchain_scratch）仍依各自說明以 `pip install` 安裝。
 
 ## 📖 推薦學習順序
 

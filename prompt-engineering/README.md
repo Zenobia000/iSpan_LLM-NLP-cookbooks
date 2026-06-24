@@ -36,6 +36,18 @@ uv run jupyter lab
 > notebook 內的 `!pip install` 已改為註解（套件由 `pyproject.toml` 統一定版）；
 > 若在 Google Colab 單獨執行某本 notebook，再按註解指示手動安裝該本所需套件即可。
 
+## Agent 導入檔案
+
+本課程模組已提供實際 agent adoption 範例：
+
+- 根目錄 [`AGENT.md`](../AGENT.md)：專案規則、notebook 驗證、MCP 使用邊界。
+- 根目錄 [`.mcp.example.json`](../.mcp.example.json)：本地課程 MCP server / GitHub read-only server 的安全設定範例。
+- [`mcp/`](mcp/)：自己寫的最小 MCP server、教學 client 與 tool catalog。
+- [`agent-skills/`](agent-skills/)：課程維護用 Skills，例如 notebook 編寫與 agent harness review。
+- [`docs/agent-integration.md`](../docs/agent-integration.md)：如何在 agent host 啟用這些設定。
+
+對應教材見 `05-agent-harness/10-agent-md-mcp-skills.ipynb` 與 `05-agent-harness/11-mcp-client-apps.ipynb`。
+
 ## 主要技術版本（2026）
 
 `openai>=2.26` · `anthropic>=0.111` · `google-genai>=2.0`（取代已 EOL 的 google-generativeai）·
