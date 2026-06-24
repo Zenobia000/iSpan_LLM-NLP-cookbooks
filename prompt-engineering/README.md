@@ -11,7 +11,7 @@
 | `02-intent-convergence` | prompt → spec | 明確指示/CTCO、few-shot 與推理、chaining、spec 撰寫（高潮） |
 | `03-structured-output` | 結構收斂 | JSON mode、function calling、Structured Outputs |
 | `04-knowledge-rag` | 知識收斂 | embedding、RAG、向量庫、reranking、進階 RAG、Agentic RAG |
-| `05-agent-harness` | 行為收斂 | function calling agent、guardrails、prompt injection、Responses API、MCP/Skills、MCP client apps |
+| `05-agent-harness` | 行為收斂 | function calling agent、guardrails、prompt injection、Responses API |
 | `06-multi-agent` | 協作收斂 | OpenAI Agents SDK、deep search、跨模型互審 |
 | `07-calibration-eval` | 校準層 | RAG 評估、回饋迴圈、微調合成資料 |
 | `08-capstone` | 整合 | 串接 01–07 的可控問答助理 |
@@ -36,22 +36,10 @@ uv run jupyter lab
 > notebook 內的 `!pip install` 已改為註解（套件由 `pyproject.toml` 統一定版）；
 > 若在 Google Colab 單獨執行某本 notebook，再按註解指示手動安裝該本所需套件即可。
 
-## Agent 導入檔案
-
-本課程模組已提供實際 agent adoption 範例：
-
-- 根目錄 [`AGENT.md`](../AGENT.md)：專案規則、notebook 驗證、MCP 使用邊界。
-- 根目錄 [`.mcp.example.json`](../.mcp.example.json)：本地課程 MCP server / GitHub read-only server 的安全設定範例。
-- [`mcp/`](mcp/)：自己寫的最小 MCP server、教學 client 與 tool catalog。
-- [`agent-skills/`](agent-skills/)：課程維護用 Skills，例如 notebook 編寫與 agent harness review。
-- [`docs/agent-integration.md`](../docs/agent-integration.md)：如何在 agent host 啟用這些設定。
-
-對應教材見 `05-agent-harness/10-agent-md-mcp-skills.ipynb` 與 `05-agent-harness/11-mcp-client-apps.ipynb`。
-
 ## 主要技術版本（2026）
 
 `openai>=2.26` · `anthropic>=0.111` · `google-genai>=2.0`（取代已 EOL 的 google-generativeai）·
 `openai-agents>=0.17` · `langchain>=1.3` / `langgraph>=1.2`（`create_agent`）·
 `chromadb>=1.5` · `pymupdf`（取代 `fitz`）· `gradio>=6` · `pydantic>=2.10`。
 
-完整審查與升級紀錄見 [`docs/reviews/2026-06-24-prompt-engineering-teaching-review.md`](../docs/reviews/2026-06-24-prompt-engineering-teaching-review.md)。
+鎖定版本見 [`pyproject.toml`](pyproject.toml) 與 [`uv.lock`](uv.lock)。
