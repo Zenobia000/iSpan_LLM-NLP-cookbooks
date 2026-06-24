@@ -28,7 +28,7 @@ MODEL_MAP: dict[str, str] = {
 
 # 機械基線跳過:需人工 model-aware 改寫。
 EXCLUDE = {
-    "810-fine-tune-with-synthetic-data.ipynb",
+    "03-fine-tuning-synthetic-data.ipynb",
 }
 
 # 原始 .ipynb 中:雙引號為 \" ;單引號為 ' 。兩端必為同型,且 id 不含引號,
@@ -57,7 +57,7 @@ def process(path: Path, apply: bool) -> int:
 def main() -> int:
     apply = "--apply" in sys.argv
     grand = 0
-    for path in sorted(NB_DIR.glob("*.ipynb")):
+    for path in sorted(NB_DIR.rglob("*.ipynb")):
         if path.name in EXCLUDE:
             continue
         n = process(path, apply)

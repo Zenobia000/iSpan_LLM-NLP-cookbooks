@@ -14,7 +14,7 @@ FORBIDDEN = [
 
 # 豁免:需人工處理(人工 model-aware 改寫),不在機械基線範圍。
 EXEMPT = {
-    "810-fine-tune-with-synthetic-data.ipynb",
+    "03-fine-tuning-synthetic-data.ipynb",
 }
 
 
@@ -29,7 +29,7 @@ def _code_text(path: Path) -> str:
 
 def test_no_legacy_models_in_code_cells():
     offenders: dict[str, list[str]] = {}
-    for path in sorted(NB_DIR.glob("*.ipynb")):
+    for path in sorted(NB_DIR.rglob("*.ipynb")):
         if path.name in EXEMPT:
             continue
         text = _code_text(path)
