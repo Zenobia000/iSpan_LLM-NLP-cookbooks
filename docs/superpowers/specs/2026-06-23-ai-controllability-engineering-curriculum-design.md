@@ -91,10 +91,10 @@
 
 - **學習目標**:從「寫提示詞技巧」升級到「寫規格(Spec)」;掌握 2026 減法哲學;能區分 business rule 與 model rule。
 - **核心原理**:為何長提示詞在強模型上反而失效;意圖精確度(Intention)。
-- **動手實作**:🟡 `102` 提示詞基礎(保留 5W1H/角色,套上「減法」框架) ｜ 🟡 `201` CoT(改成「reasoning model 時代 CoT 何時用、為何不必手刻」) ｜ 🟢 `207` chaining(當 spec 分解示範) ｜ ⭐ Spec 模板與撰寫練習(目標/受眾/驗證標準/回滾/禁區)。
+- **動手實作（2026-06-24 已重構為 4 本）**:🟢 `01-prompt-basics`（CTCO 取代 5W1H 主架構，套「減法」框架）｜ 🟡 `02-few-shot-and-reasoning`（由 `201 CoT` 改名瘦身：few-shot=格式對齊、推理交給 `reasoning_effort`、刪咒語）｜ 🟢 `03-prompt-chaining`（當 spec 分解示範 + 程式化分而治之）｜ ⭐ `04-spec-writing`（模組高潮：七欄位、business rule vs model rule、prompt→context→harness）。
 - **可控性檢核點**:把一個模糊任務寫成完整 Spec。
 - **常見失敗模式**:保母型提示詞、Spec drift(長對話偏離)。
-- **🔴 降級**:`208` ToT 手刻——移到延伸閱讀,明講「為何在 reasoning model 時代已過時」。
+- **🔴 已刪除（2026-06-24）**:`208` ToT 手刻（整本刪除，非降級）｜ `04-prompt-integration-usecase`（分類歸 M3、LLM-judge 歸 M7）。顯式 CoT/take-a-deep-breath/5-why/self-consistency 等咒語型技巧直接移除，僅在 `02-few-shot-and-reasoning` 列表供辨識。詳見 `docs/reviews/2026-06-24-m2-intent-convergence-restructure.md`。
 
 ### M3 結構收斂:JSON / Function Calling(W5–6)
 
@@ -152,7 +152,7 @@
 
 ### 🔴 刪除 / 降級
 - `960` Swarm — 刪除(被 Agents SDK 取代)
-- `208` ToT 手刻 — 降級至 M2 延伸閱讀
+- `208` ToT 手刻 — 已刪除（2026-06-24，非降級）
 - `720` Assistants API — 改寫為 Responses API
 
 ### ⭐ 新增(無現成 notebook)
@@ -200,7 +200,7 @@
 
 - **Model**:`gpt-3.5-turbo` → 現行模型;補 reasoning model(o 系列)、Claude 對照(Opus/Sonnet 4.x)。
 - **SDK 寫法**:OpenAI 改用現行 SDK 介面(Responses API、新版 function/tools schema、structured outputs);Assistants API 淘汰寫法全面改寫。
-- **棄用模式移除**:刪 `960` Swarm;`208` ToT 手刻降級;CoT 改為「reasoning model 時代用法」。
+- **棄用模式移除**:刪 `960` Swarm;`208` ToT 手刻**刪除**;CoT 併入 `02-few-shot-and-reasoning`(few-shot 格式對齊 + 推理交給 API)。
 - **相依套件**:`requirements` 對齊 2026 版本(openai、langchain v1.0+、agents SDK 等)。
 - **驗證**:每支改寫後的 notebook 需可實際執行(或標註所需金鑰/資源),不留壞 cell。
 

@@ -8,7 +8,7 @@
 | 模組 | 收斂層 | 重點 |
 |------|--------|------|
 | `01-uncontrollability` | — | 取樣/溫度為何不可控、推理、多模態 |
-| `02-intent-convergence` | prompt → spec | 基本 prompt、CoT、chaining、spec 模板 |
+| `02-intent-convergence` | prompt → spec | 明確指示/CTCO、few-shot 與推理、chaining、spec 撰寫（高潮） |
 | `03-structured-output` | 結構收斂 | JSON mode、function calling、Structured Outputs |
 | `04-knowledge-rag` | 知識收斂 | embedding、RAG、向量庫、reranking、進階 RAG、Agentic RAG |
 | `05-agent-harness` | 行為收斂 | function calling agent、guardrails、prompt injection、Responses API、MCP/Skills、MCP client apps |
