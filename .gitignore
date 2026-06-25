@@ -184,3 +184,9 @@ Langchain_scratch/langchain_framework/.idea/
 
 # 大型 PDF 課程來源教材（體積過大，不入庫）
 prompt-engineering/*.pdf
+
+# prompt-engineering 課程內部文件與講義（不公開於 repo；投影片成品改以 GitHub Release 釋出）
+prompt-engineering/ihower-LLM-workshop-課程架構分析.md
+prompt-engineering/課程大綱.md
+prompt-engineering/課程藍圖-2026.md
+prompt-engineering/講義/
